@@ -79,14 +79,14 @@ function PersonPlaceholder() {
 
 export default function PersonCard({ person }: { person: Person }) {
   return (
-    <div className="flex gap-4 rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+    <div className="flex items-start gap-4 rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
       {person.image ? (
         <Image
           src={person.image}
           alt={person.name}
           width={74}
           height={103}
-          className="h-auto w-[74px] shrink-0 rounded"
+          className="h-auto w-14 shrink-0 rounded"
         />
       ) : (
         <PersonPlaceholder />
