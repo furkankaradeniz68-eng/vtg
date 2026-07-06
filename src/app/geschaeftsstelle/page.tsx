@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
-import PersonCard, { type Person } from "@/components/PersonCard";
+import PersonCard, { MailIcon, PhoneIcon, type Person } from "@/components/PersonCard";
 
 export const metadata: Metadata = { title: "Geschäftsstelle | VTG Rheinland-Pfalz" };
 
@@ -156,14 +156,21 @@ export default function GeschaeftsstellePage() {
     <>
       <PageHero title="Geschäftsstelle" />
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <h2 className="font-heading text-xl font-bold text-neutral-900">VTG Rheinland-Pfalz</h2>
-        <p className="mt-4 text-base text-neutral-600">Roßlaufstraße 17, 67433 Neustadt</p>
-        <p className="mt-2 text-base leading-relaxed text-neutral-700">
-          Tel. (06321) 4911-0 · E-Mail:{" "}
-          <a href="mailto:info@vtg-rlp.de" className="text-vtg-orange hover:underline">
-            info@vtg-rlp.de
-          </a>
-        </p>
+        <h2 className="font-heading text-3xl font-bold text-neutral-900">VTG Rheinland-Pfalz</h2>
+        <div className="mt-6 text-base text-neutral-700">
+          <p className="font-heading font-bold text-neutral-900">Geschäftsstelle</p>
+          <p className="mt-1 text-neutral-600">Roßlaufstraße 17</p>
+          <p className="text-neutral-600">67433 Neustadt</p>
+          <p className="mt-4 flex items-center gap-1.5">
+            <PhoneIcon /> (06321) 4911-0
+          </p>
+          <p className="mt-1 flex items-center gap-1.5">
+            <MailIcon />
+            <a href="mailto:info@vtg-rlp.de" className="text-vtg-orange hover:underline">
+              info@vtg-rlp.de
+            </a>
+          </p>
+        </div>
         <Gruppe title="Geschäftsführung" people={geschaeftsfuehrung} />
         <Gruppe title="Personal, Organisation, Recht, Grundsatzfragen" people={personalOrganisation} />
         <Gruppe title="IT, Buchführung, Zahlungsmanagement" people={itBuchfuehrung} />

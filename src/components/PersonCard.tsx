@@ -27,7 +27,7 @@ function IconWrap(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function PhoneIcon(props: SVGProps<SVGSVGElement>) {
+export function PhoneIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <IconWrap {...props}>
       <path d="M3 5c0 9.4 6.6 16 16 16l2-4-5-2-1.5 1.5A12.4 12.4 0 0 1 7.5 9.5L9 8 7 3z" />
@@ -55,7 +55,7 @@ function FaxIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function MailIcon(props: SVGProps<SVGSVGElement>) {
+export function MailIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <IconWrap {...props}>
       <rect x="3" y="5" width="18" height="14" rx="2" />
