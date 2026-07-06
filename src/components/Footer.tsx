@@ -8,7 +8,7 @@ export default function Footer() {
   return (
     <footer className="bg-white text-neutral-800">
       <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
-        <div className="flex flex-col flex-wrap border-b border-neutral-200 pb-8 sm:flex-row">
+        <div className="flex flex-col flex-wrap border-b border-neutral-200 pb-8 sm:flex-row sm:items-start">
           <div className="border-neutral-200 py-4 pr-8 sm:w-[35%] sm:border-b-0">
             <Image
               src="/images/logo/vtg-schrift.png"
@@ -24,7 +24,7 @@ export default function Footer() {
             </p>
           </div>
 
-          <div className="border-neutral-200 py-4 sm:w-[15%]">
+          <div className="flex flex-1 flex-col gap-8 py-4 sm:flex-row sm:justify-end sm:gap-16">
             <ul className="flex flex-col gap-1.5 text-sm">
               {footerNav.service.map((item) => (
                 <li key={item.href} className="flex items-center gap-2">
@@ -35,9 +35,7 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
 
-          <div className="py-4 sm:w-[15%]">
             <ul className="flex flex-col gap-1.5 text-sm">
               {footerNav.uebersicht.map((item) => (
                 <li key={item.href} className="flex items-center gap-2">
