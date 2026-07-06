@@ -156,7 +156,8 @@ export default function GeschaeftsstellePage() {
     <>
       <PageHero title="Geschäftsstelle" />
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <p className="text-base text-neutral-600">Roßlaufstraße 17, 67433 Neustadt</p>
+        <h2 className="font-heading text-xl font-bold text-neutral-900">VTG Rheinland-Pfalz</h2>
+        <p className="mt-4 text-base text-neutral-600">Roßlaufstraße 17, 67433 Neustadt</p>
         <p className="mt-2 text-base leading-relaxed text-neutral-700">
           Tel. (06321) 4911-0 · E-Mail:{" "}
           <a href="mailto:info@vtg-rlp.de" className="text-vtg-orange hover:underline">

@@ -84,9 +84,9 @@ export default function PersonCard({ person }: { person: Person }) {
         <Image
           src={person.image}
           alt={person.name}
-          width={96}
-          height={96}
-          className="h-24 w-24 shrink-0 rounded object-cover"
+          width={74}
+          height={103}
+          className="h-auto w-[74px] shrink-0 rounded"
         />
       ) : (
         <PersonPlaceholder />

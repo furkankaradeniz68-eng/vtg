@@ -17,7 +17,8 @@ export default function GeschaeftsfuehrerPage() {
     <>
       <PageHero title="Geschäftsführer" />
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-        <div className="space-y-4 text-base leading-relaxed text-neutral-700">
+        <h2 className="font-heading text-xl font-bold text-neutral-900">VTG Rheinland-Pfalz</h2>
+        <div className="mt-6 space-y-4 text-base leading-relaxed text-neutral-700">
           <p>
             Der hauptamtliche Geschäftsführer wird vom Vorstand mit
             Zustimmung der obersten Flurbereinigungsbehörde bestellt.
