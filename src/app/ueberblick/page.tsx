@@ -22,7 +22,10 @@ export default function UeberblickPage() {
     <>
       <PageHero title="Überblick" />
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <h2 className="font-heading text-2xl font-bold text-neutral-900">
+          Willkommen beim VTG Rheinland-Pfalz
+        </h2>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
             { title: "Verwaltung", image: "/images/ueberblick/Verwaltung.jpg" },
             { title: "Fortbildung", image: "/images/ueberblick/Fortbildung.jpg" },
