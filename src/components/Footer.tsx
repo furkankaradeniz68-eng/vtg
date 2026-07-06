@@ -25,8 +25,7 @@ export default function Footer() {
           </div>
 
           <div className="border-neutral-200 py-4 sm:w-[15%]">
-            <h5 className="font-heading text-base font-bold text-neutral-900">Support</h5>
-            <ul className="mt-3 flex flex-col gap-1.5 text-sm">
+            <ul className="flex flex-col gap-1.5 text-sm">
               {footerNav.service.map((item) => (
                 <li key={item.href} className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 bg-neutral-900" />
@@ -39,8 +38,7 @@ export default function Footer() {
           </div>
 
           <div className="py-4 sm:w-[15%]">
-            <h5 className="font-heading text-base font-bold text-neutral-900">Company</h5>
-            <ul className="mt-3 flex flex-col gap-1.5 text-sm">
+            <ul className="flex flex-col gap-1.5 text-sm">
               {footerNav.uebersicht.map((item) => (
                 <li key={item.href} className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 bg-neutral-900" />
