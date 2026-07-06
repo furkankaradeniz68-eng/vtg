@@ -64,6 +64,19 @@ function MailIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function PersonPlaceholder() {
+  return (
+    <svg
+      viewBox="0 0 96 96"
+      className="h-24 w-24 shrink-0 rounded bg-neutral-100"
+      aria-hidden="true"
+    >
+      <circle cx="48" cy="38" r="16" fill="#242530" />
+      <path d="M16 88c0-17.7 14.3-32 32-32s32 14.3 32 32" fill="#242530" />
+    </svg>
+  );
+}
+
 export default function PersonCard({ person }: { person: Person }) {
   return (
     <div className="flex gap-4 rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
@@ -76,7 +89,7 @@ export default function PersonCard({ person }: { person: Person }) {
           className="h-24 w-24 shrink-0 rounded object-cover"
         />
       ) : (
-        <div className="h-24 w-24 shrink-0 rounded bg-neutral-100" />
+        <PersonPlaceholder />
       )}
       <div className="min-w-0">
         <p className="font-heading font-bold text-neutral-900">{person.name}</p>

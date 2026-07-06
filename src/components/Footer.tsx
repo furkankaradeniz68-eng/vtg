@@ -25,10 +25,11 @@ export default function Footer() {
           </div>
 
           <div className="border-neutral-200 py-4 sm:w-[15%]">
-            <h3 className="font-heading text-base font-bold text-neutral-900">Support</h3>
+            <h5 className="font-heading text-base font-bold text-neutral-900">Support</h5>
             <ul className="mt-3 flex flex-col gap-1.5 text-sm">
               {footerNav.service.map((item) => (
-                <li key={item.href}>
+                <li key={item.href} className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 bg-neutral-900" />
                   <Link href={item.href} className="hover:text-vtg-orange">
                     {item.label}
                   </Link>
@@ -38,10 +39,11 @@ export default function Footer() {
           </div>
 
           <div className="py-4 sm:w-[15%]">
-            <h3 className="font-heading text-base font-bold text-neutral-900">Company</h3>
+            <h5 className="font-heading text-base font-bold text-neutral-900">Company</h5>
             <ul className="mt-3 flex flex-col gap-1.5 text-sm">
               {footerNav.uebersicht.map((item) => (
-                <li key={item.href}>
+                <li key={item.href} className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 bg-neutral-900" />
                   <Link href={item.href} className="hover:text-vtg-orange">
                     {item.label}
                   </Link>
@@ -51,17 +53,15 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-4 py-8 text-sm text-neutral-600 sm:flex-row">
+        <div className="flex flex-col items-center justify-between gap-4 py-8 text-sm text-neutral-500 sm:flex-row">
           <p>
             Copyright © {year} Verband der Teilnehmergemeinschaften
-            Rheinland-Pfalz.
-            <br />
-            Körperschaft des öffentliche Rechts.
+            Rheinland-Pfalz. Körperschaft des öffentliche Rechts.
           </p>
-          <ul className="flex flex-wrap items-center gap-4">
+          <ul className="flex flex-wrap items-center gap-3">
             {footerNav.legal.map((item, i) => (
-              <li key={item.href} className="flex items-center gap-4">
-                {i > 0 && <span className="h-2.5 w-px bg-neutral-300" />}
+              <li key={item.href} className="flex items-center gap-3">
+                {i > 0 && <span>|</span>}
                 <Link href={item.href} className="hover:text-vtg-orange">
                   {item.label}
                 </Link>

@@ -76,13 +76,11 @@ export const footerNav = {
   uebersicht: [
     { label: "Überblick", href: "/ueberblick" },
     { label: "Bauabwicklung", href: "/bauabwicklung" },
-    { label: "Kassen- und Buchführung", href: "/kassen-und-buchfuehrung" },
     { label: "Sonstige Aufgaben", href: "/sonstige-aufgaben" },
+    { label: "Kassen- & Buchführung", href: "/kassen-und-buchfuehrung" },
   ],
   service: [
     { label: "Startseite", href: "/" },
     { label: "Geschäftsstelle", href: "/geschaeftsstelle" },
-    { label: "Mitglieder", href: "/mitglieder" },
-    { label: "Kontakt", href: "/kontakt" },
   ],
 };
