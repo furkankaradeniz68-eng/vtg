@@ -1,0 +1,162 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+import { mainNav, type NavItem } from "@/lib/nav";
+
+function DesktopSubmenu({ items }: { items: NavItem[] }) {
+  return (
+    <ul className="absolute left-0 top-full z-40 min-w-64 rounded-md border border-neutral-200 bg-white py-2 shadow-lg">
+      {items.map((item) => (
+        <li key={item.href} className="group/child relative">
+          <Link
+            href={item.href}
+            className="flex items-center justify-between px-4 py-2 text-sm text-neutral-800 hover:bg-vtg-yellow/20 hover:text-neutral-900"
+          >
+            {item.label}
+            {item.children && <span className="ml-2 text-xs">›</span>}
+          </Link>
+          {item.children && (
+            <ul className="invisible absolute left-full top-0 z-50 min-w-56 rounded-md border border-neutral-200 bg-white py-2 opacity-0 shadow-lg transition-opacity duration-150 group-hover/child:visible group-hover/child:opacity-100">
+              {item.children.map((child) => (
+                <li key={child.href}>
+                  <Link
+                    href={child.href}
+                    className="block px-4 py-2 text-sm text-neutral-800 hover:bg-vtg-yellow/20 hover:text-neutral-900"
+                  >
+                    {child.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MobileMenu({ items, onNavigate }: { items: NavItem[]; onNavigate: () => void }) {
+  const [openLabel, setOpenLabel] = useState<string | null>(null);
+
+  return (
+    <ul className="flex flex-col divide-y divide-neutral-200">
+      {items.map((item) => (
+        <li key={item.href} className="py-1">
+          <div className="flex items-center justify-between">
+            <Link
+              href={item.href}
+              onClick={onNavigate}
+              className="flex-1 py-2 text-base font-medium text-neutral-900"
+            >
+              {item.label}
+            </Link>
+            {item.children && (
+              <button
+                type="button"
+                aria-label={`${item.label} Untermenü öffnen`}
+                onClick={() =>
+                  setOpenLabel(openLabel === item.label ? null : item.label)
+                }
+                className="px-3 py-2 text-lg"
+              >
+                {openLabel === item.label ? "–" : "+"}
+              </button>
+            )}
+          </div>
+          {item.children && openLabel === item.label && (
+            <ul className="ml-4 flex flex-col gap-1 border-l border-neutral-200 pb-2 pl-4">
+              {item.children.map((child) => (
+                <li key={child.href}>
+                  <Link
+                    href={child.href}
+                    onClick={onNavigate}
+                    className="block py-1.5 text-sm text-neutral-700"
+                  >
+                    {child.label}
+                  </Link>
+                  {child.children && (
+                    <ul className="ml-3 flex flex-col gap-1 border-l border-neutral-200 pl-3">
+                      {child.children.map((grandchild) => (
+                        <li key={grandchild.href}>
+                          <Link
+                            href={grandchild.href}
+                            onClick={onNavigate}
+                            className="block py-1 text-sm text-neutral-600"
+                          >
+                            {grandchild.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export default function Header() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <Link href="/" className="shrink-0" aria-label="VTG Rheinland-Pfalz Startseite">
+          <Image
+            src="/images/logo/vtg-schrift.png"
+            alt="VTG Rheinland-Pfalz Logo"
+            width={4006}
+            height={1558}
+            priority
+            className="h-12 w-auto"
+          />
+        </Link>
+
+        <nav className="hidden lg:block">
+          <ul className="flex items-center gap-1">
+            {mainNav.map((item) => (
+              <li key={item.href} className="group relative">
+                <Link
+                  href={item.href}
+                  className="flex items-center gap-1 rounded px-3 py-2 text-sm font-semibold uppercase tracking-wide text-neutral-800 hover:text-vtg-orange"
+                >
+                  {item.label}
+                  {item.children && <span className="text-xs">▾</span>}
+                </Link>
+                {item.children && (
+                  <div className="invisible absolute opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
+                    <DesktopSubmenu items={item.children} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <button
+          type="button"
+          className="flex flex-col gap-1.5 p-2 lg:hidden"
+          aria-label="Menü öffnen"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((v) => !v)}
+        >
+          <span className="h-0.5 w-6 bg-neutral-900" />
+          <span className="h-0.5 w-6 bg-neutral-900" />
+          <span className="h-0.5 w-6 bg-neutral-900" />
+        </button>
+      </div>
+
+      {mobileOpen && (
+        <div className="border-t border-neutral-200 px-4 py-2 lg:hidden">
+          <MobileMenu items={mainNav} onNavigate={() => setMobileOpen(false)} />
+        </div>
+      )}
+    </header>
+  );
+}
