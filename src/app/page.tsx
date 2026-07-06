@@ -13,11 +13,14 @@ export default function HomePage() {
           className="object-cover"
         />
         <div className="absolute inset-0 bg-neutral-900/55" />
-        <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <h1 className="font-heading text-4xl font-bold text-white sm:text-5xl">
+        <div className="relative mx-auto max-w-4xl px-4 sm:px-6">
+          <p className="text-sm font-bold uppercase tracking-widest text-neutral-200">
             Verband der Teilnehmergemeinschaften
+          </p>
+          <h1 className="mt-3 font-heading text-4xl font-bold text-white sm:text-5xl">
+            Herzlich willkommen beim VTG!
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-100">
+          <p className="mt-4 max-w-2xl text-lg text-neutral-100">
             Gemeinsam für geordnete Bodenentwicklung in Rheinland-Pfalz.
           </p>
           <Link
@@ -29,66 +32,94 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6">
-        <h2 className="font-heading text-2xl font-bold text-neutral-900 sm:text-3xl">
-          Wer wir sind
-        </h2>
-        <p className="mx-auto mt-6 max-w-3xl text-base leading-relaxed text-neutral-700">
-          Der Verband der Teilnehmergemeinschaften Rheinland-Pfalz (VTG) ist
-          der Dachverband der Teilnehmergemeinschaften von
-          Bodenordnungsverfahren in Rheinland-Pfalz. Als Körperschaft des
-          öffentlichen Rechts mit Selbstverwaltung, errichtet auf Grundlage
-          der §§ 26a–f des Flurbereinigungsgesetzes, übernimmt der VTG für
-          seine Mitglieder die Bauabwicklung, die zentrale Kassen- und
-          Buchführung sowie die Vorfinanzierung gemeinschaftlicher Anlagen.
-        </p>
-        <Link
-          href="/ueberblick"
-          className="mt-8 inline-block rounded border-2 border-neutral-900 px-8 py-3 font-heading text-sm font-bold uppercase tracking-wide text-neutral-900 transition hover:border-vtg-orange hover:bg-vtg-orange"
-        >
-          Zum Überblick
-        </Link>
-      </section>
-
-      <section className="bg-neutral-50 py-20">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:grid-cols-3 sm:px-6">
-          {[
-            {
-              title: "Verwaltung",
-              image: "/images/ueberblick/Verwaltung.jpg",
-              href: "/kassen-und-buchfuehrung",
-            },
-            {
-              title: "Fortbildung",
-              image: "/images/ueberblick/Fortbildung.jpg",
-              href: "/sonstige-aufgaben",
-            },
-            {
-              title: "Ausbau",
-              image: "/images/ueberblick/Ausbau.jpg",
-              href: "/bauabwicklung",
-            },
-          ].map((card) => (
+      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-widest text-vtg-orange">
+              Wer wir sind
+            </p>
+            <h2 className="mt-3 font-heading text-2xl font-bold text-neutral-900 sm:text-3xl">
+              Gemeinsam für geordnete Bodenentwicklung in Rheinland-Pfalz.
+            </h2>
+            <div className="mt-6 space-y-4 text-base leading-relaxed text-neutral-700">
+              <p>
+                VTG steht für „Verband der Teilnehmergemeinschaften
+                Rheinland-Pfalz". In ihm haben sich die
+                Teilnehmergemeinschaften von Bodenordnungsverfahren
+                landesweit zu einem Dachverband zusammengeschlossen. Mehr zu
+                den Teilnehmergemeinschaften selbst finden Sie unter &gt;{" "}
+                <a
+                  href="https://www.landentwicklung.rlp.de/Internet/global/inetcntr.nsf/dlr_web_full.xsp?src=EU4WP82QQ4&p1=title%3DTeilnehmergemeinschaft+TG%7E%7Eurl%3D%2FInternet%2Fglobal%2Fthemen.nsf%2F%28Web_P_LEW_UKat_XP%29%2FD3FFD1CAD808757DC1256F0A004783FC%3FOpenDocument&p3=J0PCX9RS7G&p4=78HV82A9P5"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-vtg-orange hover:underline"
+                >
+                  Landentwicklung.rlp.de
+                </a>{" "}
+                &lt;
+              </p>
+              <p>
+                Serviceleistungen des VTG sind vor allem die Sicherstellung
+                der Finanzierung von Bodenordnungsverfahren nach dem
+                Flurbereinigungsgesetz und die gesamte Bauabwicklung.
+                Außerdem vertritt er die Interessen seiner Mitglieder im
+                politischen Raum.
+              </p>
+              <p>
+                Der VTG ist wie die Teilnehmergemeinschaften eine Körperschaft
+                des öffentlichen Rechts. Rechtliche Grundlage ist das &gt;{" "}
+                <a
+                  href="https://www.gesetze-im-internet.de/flurbg/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-vtg-orange hover:underline"
+                >
+                  Flurbereinigungsgesetz
+                </a>{" "}
+                &lt;. Er verwaltet sich im Rahmen dieses Gesetzes und seiner
+                Satzung selbst.
+              </p>
+              <p>
+                Sitz der &gt;{" "}
+                <Link
+                  href="/geschaeftsstelle"
+                  className="font-bold text-vtg-orange hover:underline"
+                >
+                  Geschäftsstelle
+                </Link>{" "}
+                &lt; ist Neustadt / Weinstrasse.
+              </p>
+              <p>
+                Die folgenden Seiten sollen Ihnen zum einen Überblick über
+                den Aufbau und die Organisation des VTG geben; zum anderen
+                erhalten die Mitglieder in einem passwortgeschützten Login –
+                Bereich die Möglichkeit, aktuelle verfahrensspezifische Daten
+                aus der Buchhaltung abzurufen.
+              </p>
+            </div>
             <Link
-              key={card.title}
-              href={card.href}
-              className="group overflow-hidden rounded-lg bg-white shadow-sm transition hover:shadow-md"
+              href="/ueberblick"
+              className="mt-8 inline-block rounded bg-vtg-yellow px-8 py-3 font-heading text-sm font-bold uppercase tracking-wide text-neutral-900 transition hover:bg-vtg-orange"
             >
-              <div className="relative h-56 w-full overflow-hidden">
+              zum überblick
+            </Link>
+          </div>
+          <div className="flex flex-col gap-4">
+            {[
+              { title: "Verwaltung", image: "/images/ueberblick/Verwaltung.jpg" },
+              { title: "Fortbildung", image: "/images/ueberblick/Fortbildung.jpg" },
+              { title: "Ausbau", image: "/images/ueberblick/Ausbau.jpg" },
+            ].map((item) => (
+              <div key={item.title} className="relative h-48 w-full overflow-hidden rounded-lg">
                 <Image
-                  src={card.image}
-                  alt={card.title}
+                  src={item.image}
+                  alt={item.title}
                   fill
-                  className="object-cover transition duration-300 group-hover:scale-105"
+                  className="object-cover"
                 />
               </div>
-              <div className="p-5">
-                <h3 className="font-heading text-lg font-bold text-neutral-900">
-                  {card.title}
-                </h3>
-              </div>
-            </Link>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
     </>

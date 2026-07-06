@@ -28,9 +28,12 @@ const team: Person[] = [
 export default function NeustadtPage() {
   return (
     <>
-      <PageHero title="Außenstelle Neustadt" subtitle="Roßlaufstraße 17, 67433 Neustadt · Bereich: Bau, Landespflege" />
+      <PageHero title="Außenstelle Neustadt" />
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <p className="text-base text-neutral-600">
+          Roßlaufstraße 17, 67433 Neustadt · Bereich: Bau, Landespflege
+        </p>
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {team.map((p) => (
             <PersonCard key={p.name} person={p} />
           ))}

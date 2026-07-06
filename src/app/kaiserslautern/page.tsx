@@ -43,9 +43,12 @@ const team: Person[] = [
 export default function KaiserslauternPage() {
   return (
     <>
-      <PageHero title="Außenstelle Kaiserslautern" subtitle="Fischerstraße 12, 67655 Kaiserslautern · Bereich: Bau, Landespflege" />
+      <PageHero title="Außenstelle Kaiserslautern" />
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <p className="text-base text-neutral-600">
+          Fischerstraße 12, 67655 Kaiserslautern · Bereich: Bau, Landespflege
+        </p>
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {team.map((p) => (
             <PersonCard key={p.name} person={p} />
           ))}

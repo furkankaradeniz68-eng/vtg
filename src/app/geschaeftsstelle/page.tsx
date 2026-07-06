@@ -154,9 +154,10 @@ function Gruppe({ title, people }: { title: string; people: Person[] }) {
 export default function GeschaeftsstellePage() {
   return (
     <>
-      <PageHero title="Geschäftsstelle" subtitle="Roßlaufstraße 17, 67433 Neustadt" />
+      <PageHero title="Geschäftsstelle" />
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <p className="text-base leading-relaxed text-neutral-700">
+        <p className="text-base text-neutral-600">Roßlaufstraße 17, 67433 Neustadt</p>
+        <p className="mt-2 text-base leading-relaxed text-neutral-700">
           Tel. (06321) 4911-0 · E-Mail:{" "}
           <a href="mailto:info@vtg-rlp.de" className="text-vtg-orange hover:underline">
             info@vtg-rlp.de
