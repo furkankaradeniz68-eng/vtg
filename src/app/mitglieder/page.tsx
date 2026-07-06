@@ -25,6 +25,29 @@ export default function MitgliederPage() {
             Internetseite.
           </p>
           <div>
+            <h2 className="font-heading text-xl font-bold text-neutral-900">Mitgliederkarte:</h2>
+            <a
+              href="https://www.google.com/maps/d/u/0/viewer?mid=1efobRltWs4U_5NLVbEHrq29cemzgT1QC&ll=49.849108660992556%2C7.756850081859836&z=8"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Mitgliederkarte auf Google Maps öffnen"
+              className="mt-3 inline-flex text-vtg-orange hover:text-neutral-900"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-8 w-8"
+              >
+                <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
+                <circle cx="12" cy="9.5" r="2.5" />
+              </svg>
+            </a>
+          </div>
+          <div>
             <h2 className="font-heading text-xl font-bold text-neutral-900">Mitgliederversammlung</h2>
             <p className="mt-3">
               Die Mitgliederversammlung ist das höchste Organ des VTG.
