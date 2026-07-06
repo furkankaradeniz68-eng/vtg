@@ -42,12 +42,18 @@ const team: Person[] = [
 export default function MayenMontabaurPage() {
   return (
     <>
-      <PageHero title="Außenstelle Mayen" />
+      <PageHero title="Mayen/Montabaur" />
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <p className="text-base text-neutral-600">
-          Bannerberg 4, 56727 Mayen · Bereich: Bau, Landespflege
+        <h2 className="font-heading text-xl font-bold text-neutral-900">VTG Rheinland-Pfalz</h2>
+        <p className="mt-2 text-base text-neutral-600">
+          <strong>Aussenstelle Mayen</strong>
+          <br />
+          Bannerberg 4
+          <br />
+          56727 Mayen
         </p>
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <h2 className="mt-8 font-heading text-xl font-bold text-neutral-900">Bau, Landespflege</h2>
+        <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {team.map((p) => (
             <PersonCard key={p.name} person={p} />
           ))}

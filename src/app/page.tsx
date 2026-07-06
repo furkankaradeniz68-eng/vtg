@@ -110,7 +110,7 @@ export default function HomePage() {
               { title: "Fortbildung", image: "/images/ueberblick/Fortbildung.jpg" },
               { title: "Ausbau", image: "/images/ueberblick/Ausbau.jpg" },
             ].map((item) => (
-              <div key={item.title} className="relative h-48 w-full overflow-hidden rounded-lg">
+              <div key={item.title} className="relative h-80 w-full overflow-hidden rounded-lg">
                 <Image
                   src={item.image}
                   alt={item.title}
