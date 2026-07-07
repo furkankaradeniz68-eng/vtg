@@ -54,6 +54,7 @@ export const mainNav: NavItem[] = [
       { label: "Satzung und Vordrucke", href: "/download-satzung-vordrucke" },
       { label: "Fachtagungen", href: "/fachtagungen" },
       { label: "Sonstiges", href: "/sonstiges" },
+      { label: "TeamViewerQS", href: "/downloads/TeamViewerQS_VTGRLP.zip" },
     ],
   },
   {
