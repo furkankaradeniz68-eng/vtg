@@ -68,6 +68,35 @@ export const mainNav: NavItem[] = [
   { label: "Login", href: "/login" },
 ];
 
+export type MemberRole = "abonnent" | "intern";
+
+export const header2Nav: Record<MemberRole, NavItem[]> = {
+  abonnent: [
+    { label: "Verfahrensdaten", href: "/mitgliederbereich/verfahrensdaten" },
+    { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
+    { label: "Zins", href: "/mitgliederbereich/zins" },
+    { label: "Umlage", href: "/mitgliederbereich/umlage" },
+    { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
+    { label: "Kontenplan (PDF)", href: "/downloads/Kontenplan_TG.pdf" },
+  ],
+  intern: [
+    { label: "Verfahrensdaten", href: "/mitgliederbereich/verfahrensdaten" },
+    { label: "Verfahrensauswahl", href: "/mitgliederbereich/verfahrensauswahl" },
+    { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
+    { label: "Zins", href: "/mitgliederbereich/zins" },
+    { label: "Umlage", href: "/mitgliederbereich/umlage" },
+    { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
+    { label: "TG-Einzeldaten (ZIP)", href: "/downloads/TGEinzeldaten.zip" },
+    { label: "Kontenplan (PDF)", href: "/downloads/Kontenplan_TG.pdf" },
+  ],
+};
+
+export const header2SecondRow: Partial<Record<MemberRole, NavItem[]>> = {
+  intern: [
+    { label: "Bewilligungs- und Abrufübersicht", href: "/mitgliederbereich/bewilligungs-und-abrufuebersicht" },
+  ],
+};
+
 export const footerNav = {
   legal: [
     { label: "Datenschutzerklärung", href: "/datenschutzerklaerung" },
