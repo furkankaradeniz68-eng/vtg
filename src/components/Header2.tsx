@@ -1,24 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { usePathname } from "next/navigation";
 import { header2Nav, header2SecondRow, type MemberRole } from "@/lib/nav";
 
-/**
- * TEMPORARY preview-only role switch: ?vorschau=abonnent|intern in the URL.
- * Not linked from anywhere in the UI. Replace with real session/role
- * detection once the login backend exists.
- */
-function useDemoRole(): MemberRole | null {
-  const params = useSearchParams();
-  const vorschau = params.get("vorschau");
-  if (vorschau === "abonnent" || vorschau === "intern") return vorschau;
-  return null;
-}
-
-function Header2Content() {
-  const role = useDemoRole();
+export default function Header2({ role }: { role: MemberRole | null }) {
   const pathname = usePathname();
 
   if (!role) return null;
@@ -71,13 +57,5 @@ function Header2Content() {
         )}
       </div>
     </div>
-  );
-}
-
-export default function Header2() {
-  return (
-    <Suspense fallback={null}>
-      <Header2Content />
-    </Suspense>
   );
 }

@@ -4,6 +4,8 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Header2 from "@/components/Header2";
 import Footer from "@/components/Footer";
+import { getSession } from "@/lib/auth";
+import type { MemberRole } from "@/lib/nav";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -23,19 +25,22 @@ export const metadata: Metadata = {
     "Der Verband der Teilnehmergemeinschaften Rheinland-Pfalz (VTG) ist der Dachverband der Teilnehmergemeinschaften von Bodenordnungsverfahren in Rheinland-Pfalz.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+  const role: MemberRole | null = session ? (session.role === "abonnent" ? "abonnent" : "intern") : null;
+
   return (
     <html
       lang="de"
       className={`${montserrat.variable} ${roboto.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Header2 />
-        <Header />
+        <Header2 role={role} />
+        <Header loggedIn={!!session} />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>

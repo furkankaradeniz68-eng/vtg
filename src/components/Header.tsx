@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { mainNav, type NavItem } from "@/lib/nav";
 
@@ -101,8 +102,18 @@ function MobileMenu({ items, onNavigate }: { items: NavItem[]; onNavigate: () =>
   );
 }
 
-export default function Header() {
+export default function Header({ loggedIn }: { loggedIn: boolean }) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = loggedIn ? mainNav.filter((item) => item.href !== "/login") : mainNav;
+
+  async function handleLogout() {
+    await fetch("/api/logout", { method: "POST" });
+    setMobileOpen(false);
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b-[1.5px] border-vtg-yellow bg-white">
@@ -134,7 +145,7 @@ export default function Header() {
 
         <nav className="hidden lg:block">
           <ul className="flex items-center gap-8">
-            {mainNav.map((item) => (
+            {navItems.map((item) => (
               <li key={item.href} className="group relative">
                 <Link
                   href={item.href}
@@ -153,13 +164,33 @@ export default function Header() {
                 )}
               </li>
             ))}
+            {loggedIn && (
+              <li>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="py-3 text-base font-normal text-neutral-800 hover:text-vtg-orange"
+                >
+                  Logout
+                </button>
+              </li>
+            )}
           </ul>
         </nav>
       </div>
 
       {mobileOpen && (
         <div className="border-t border-neutral-200 px-4 py-2 lg:hidden">
-          <MobileMenu items={mainNav} onNavigate={() => setMobileOpen(false)} />
+          <MobileMenu items={navItems} onNavigate={() => setMobileOpen(false)} />
+          {loggedIn && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full py-2 text-left text-base font-medium text-neutral-900"
+            >
+              Logout
+            </button>
+          )}
         </div>
       )}
     </header>
