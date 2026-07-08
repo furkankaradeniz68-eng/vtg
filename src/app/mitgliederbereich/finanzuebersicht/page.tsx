@@ -21,7 +21,7 @@ export default async function FinanzuebersichtPage({
   await requireSession();
   const { id } = await searchParams;
   const verfahren = id ? findVerfahren(id) : undefined;
-  const personendaten = id ? getPersonendaten(id) : undefined;
+  const personendaten = id ? await getPersonendaten(id) : undefined;
 
   return (
     <>

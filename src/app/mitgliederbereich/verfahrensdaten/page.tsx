@@ -15,7 +15,7 @@ export default async function VerfahrensdatenPage({
   const session = await requireSession();
   const { id } = await searchParams;
   const verfahren = id ? findVerfahren(id) : undefined;
-  const personendaten = id ? getPersonendaten(id) : undefined;
+  const personendaten = id ? await getPersonendaten(id) : undefined;
   const showBackButton = session.role === "dlr" || session.role === "admin";
 
   return (
