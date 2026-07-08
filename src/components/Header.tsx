@@ -18,7 +18,7 @@ function SubmenuLink({
 }) {
   if (isFileHref(href)) {
     return (
-      <a href={href} className={className}>
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
         {children}
       </a>
     );
@@ -75,7 +75,13 @@ function MobileMenuLink({
 }) {
   if (isFileHref(href)) {
     return (
-      <a href={href} onClick={onClick} className={className}>
+      <a
+        href={href}
+        onClick={onClick}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+      >
         {children}
       </a>
     );

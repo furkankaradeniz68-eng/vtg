@@ -21,14 +21,15 @@ export default function LoginForm() {
       body: JSON.stringify({ username, password }),
     });
 
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       setError(data.error ?? "Anmeldung fehlgeschlagen.");
       setLoading(false);
       return;
     }
 
-    router.push("/");
+    router.push(data.role === "dlr" ? "/mitgliederbereich/verfahrensauswahl" : "/");
     router.refresh();
   }
 

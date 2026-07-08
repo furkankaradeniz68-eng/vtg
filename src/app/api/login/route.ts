@@ -32,5 +32,5 @@ export async function POST(request: Request) {
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, role: user.role });
 }
