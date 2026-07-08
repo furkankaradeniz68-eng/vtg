@@ -4,6 +4,13 @@ export type NavItem = {
   children?: NavItem[];
 };
 
+// Links to static files (PDF/ZIP/...) must use a plain <a>, not next/link's
+// client-side router — the router expects an RSC payload back and throws
+// when a binary file is returned instead, crashing the whole page.
+export function isFileHref(href: string): boolean {
+  return /\.[a-z0-9]{2,4}$/i.test(href);
+}
+
 export const mainNav: NavItem[] = [
   {
     label: "Über uns",
@@ -80,8 +87,8 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Kontenplan (PDF)", href: "/downloads/Kontenplan_TG.pdf" },
   ],
   intern: [
-    { label: "Verfahrensdaten", href: "/mitgliederbereich/verfahrensdaten" },
     { label: "Verfahrensauswahl", href: "/mitgliederbereich/verfahrensauswahl" },
+    { label: "Verfahrensdaten", href: "/mitgliederbereich/verfahrensdaten" },
     { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Umlage", href: "/mitgliederbereich/umlage" },

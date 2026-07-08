@@ -4,30 +4,53 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { mainNav, type NavItem } from "@/lib/nav";
+import { mainNav, isFileHref, type NavItem } from "@/lib/nav";
+
+function SubmenuLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  if (isFileHref(href)) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 function DesktopSubmenu({ items }: { items: NavItem[] }) {
   return (
     <ul className="absolute left-0 top-full z-40 min-w-64 divide-y divide-neutral-100 border-b-4 border-vtg-yellow bg-white py-1 shadow-[0_0_60px_rgba(0,0,0,0.1)]">
       {items.map((item) => (
         <li key={item.href} className="group/child relative">
-          <Link
+          <SubmenuLink
             href={item.href}
             className="flex items-center justify-between px-4 py-2.5 text-sm text-neutral-800 hover:bg-vtg-yellow hover:text-neutral-900"
           >
             {item.label}
             {item.children && <span className="ml-2 text-xs">›</span>}
-          </Link>
+          </SubmenuLink>
           {item.children && (
             <ul className="invisible absolute left-full top-0 z-50 min-w-56 divide-y divide-neutral-100 border-b-4 border-vtg-yellow bg-white py-1 opacity-0 shadow-[0_0_60px_rgba(0,0,0,0.1)] transition-opacity duration-150 group-hover/child:visible group-hover/child:opacity-100">
               {item.children.map((child) => (
                 <li key={child.href}>
-                  <Link
+                  <SubmenuLink
                     href={child.href}
                     className="block px-4 py-2.5 text-sm text-neutral-800 hover:bg-vtg-yellow hover:text-neutral-900"
                   >
                     {child.label}
-                  </Link>
+                  </SubmenuLink>
                 </li>
               ))}
             </ul>
@@ -35,6 +58,31 @@ function DesktopSubmenu({ items }: { items: NavItem[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function MobileMenuLink({
+  href,
+  onClick,
+  className,
+  children,
+}: {
+  href: string;
+  onClick: () => void;
+  className: string;
+  children: React.ReactNode;
+}) {
+  if (isFileHref(href)) {
+    return (
+      <a href={href} onClick={onClick} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} onClick={onClick} className={className}>
+      {children}
+    </Link>
   );
 }
 
@@ -46,13 +94,13 @@ function MobileMenu({ items, onNavigate }: { items: NavItem[]; onNavigate: () =>
       {items.map((item) => (
         <li key={item.href} className="py-1">
           <div className="flex items-center justify-between">
-            <Link
+            <MobileMenuLink
               href={item.href}
               onClick={onNavigate}
               className="flex-1 py-2 text-base font-medium text-neutral-900"
             >
               {item.label}
-            </Link>
+            </MobileMenuLink>
             {item.children && (
               <button
                 type="button"
@@ -70,24 +118,24 @@ function MobileMenu({ items, onNavigate }: { items: NavItem[]; onNavigate: () =>
             <ul className="ml-4 flex flex-col gap-1 border-l border-neutral-200 pb-2 pl-4">
               {item.children.map((child) => (
                 <li key={child.href}>
-                  <Link
+                  <MobileMenuLink
                     href={child.href}
                     onClick={onNavigate}
                     className="block py-1.5 text-sm text-neutral-700"
                   >
                     {child.label}
-                  </Link>
+                  </MobileMenuLink>
                   {child.children && (
                     <ul className="ml-3 flex flex-col gap-1 border-l border-neutral-200 pl-3">
                       {child.children.map((grandchild) => (
                         <li key={grandchild.href}>
-                          <Link
+                          <MobileMenuLink
                             href={grandchild.href}
                             onClick={onNavigate}
                             className="block py-1 text-sm text-neutral-600"
                           >
                             {grandchild.label}
-                          </Link>
+                          </MobileMenuLink>
                         </li>
                       ))}
                     </ul>

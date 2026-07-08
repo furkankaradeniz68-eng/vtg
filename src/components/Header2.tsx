@@ -2,7 +2,37 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { header2Nav, header2SecondRow, type MemberRole } from "@/lib/nav";
+import { header2Nav, header2SecondRow, isFileHref, type MemberRole } from "@/lib/nav";
+
+function Header2Link({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  const className = `inline-block border-b-2 py-0.5 text-sm ${
+    active
+      ? "border-vtg-yellow text-neutral-900"
+      : "border-transparent text-neutral-700 hover:text-vtg-orange"
+  }`;
+
+  if (isFileHref(href)) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 export default function Header2({ role }: { role: MemberRole | null }) {
   const pathname = usePathname();
@@ -16,43 +46,23 @@ export default function Header2({ role }: { role: MemberRole | null }) {
     <div className="border-b border-neutral-200 bg-neutral-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ul className="flex flex-wrap items-center gap-x-6 gap-y-1 py-2">
-          {items.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`inline-block border-b-2 py-0.5 text-sm ${
-                    active
-                      ? "border-vtg-yellow text-neutral-900"
-                      : "border-transparent text-neutral-700 hover:text-vtg-orange"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
+          {items.map((item) => (
+            <li key={item.href}>
+              <Header2Link href={item.href} active={pathname === item.href}>
+                {item.label}
+              </Header2Link>
+            </li>
+          ))}
         </ul>
         {secondRow && (
           <ul className="flex flex-wrap items-center gap-x-6 gap-y-1 pb-2">
-            {secondRow.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`inline-block border-b-2 py-0.5 text-sm ${
-                      active
-                        ? "border-vtg-yellow text-neutral-900"
-                        : "border-transparent text-neutral-700 hover:text-vtg-orange"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
+            {secondRow.map((item) => (
+              <li key={item.href}>
+                <Header2Link href={item.href} active={pathname === item.href}>
+                  {item.label}
+                </Header2Link>
+              </li>
+            ))}
           </ul>
         )}
       </div>
