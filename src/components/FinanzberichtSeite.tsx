@@ -28,7 +28,7 @@ export default function FinanzberichtSeite({
       <PageHero title={`${heroTitel} (${ansichtLabel})`} />
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <Link
-          href="/mitgliederbereich/finanzuebersicht"
+          href={`/mitgliederbereich/finanzuebersicht${verfahrenId ? `?id=${verfahrenId}` : ""}`}
           className="mb-6 inline-flex items-center gap-1.5 rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:border-vtg-orange hover:text-vtg-orange"
         >
           ‹ Zurück zur Finanzübersicht

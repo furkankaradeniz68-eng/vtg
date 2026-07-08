@@ -45,6 +45,13 @@ export default async function FinanzuebersichtPage({
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         {verfahren ? (
           <>
+            <Link
+              href={`/mitgliederbereich/verfahrensdaten?id=${verfahren.nr}`}
+              className="mb-6 inline-flex items-center gap-1.5 rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:border-vtg-orange hover:text-vtg-orange"
+            >
+              ‹ Zurück zu Verfahrensdaten
+            </Link>
+
             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 text-sm text-neutral-700">
               <p>
                 <strong className="text-neutral-900">{verfahren.nr}</strong> {verfahren.name}
@@ -98,7 +105,7 @@ export default async function FinanzuebersichtPage({
                     <span className="flex-1 bg-vtg-yellow px-4 py-2.5 text-neutral-900">
                       {bericht.titel}:
                     </span>
-                    <span className="bg-vtg-orange px-4 py-2.5 text-white">
+                    <span className="w-32 shrink-0 bg-vtg-orange px-4 py-2.5 text-right text-white">
                       {formatEuro(gesamtsumme(bericht.kategorieSlug))}
                     </span>
                   </Link>
