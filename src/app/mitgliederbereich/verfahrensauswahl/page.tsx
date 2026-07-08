@@ -17,12 +17,16 @@ export default async function VerfahrensauswahlPage() {
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         {list.length > 0 ? (
           <SimpleTable
-            columns={["Nr.", "Verfahren", "Fläche", "Stand"]}
+            columns={["Produkt-Nr.", "Flurbereinigungsverfahren"]}
             rows={list.map((v) => [
-              v.nr,
+              <Link
+                key={v.nr}
+                href={`/mitgliederbereich/verfahrensdaten?id=${v.nr}`}
+                className="text-vtg-orange hover:underline"
+              >
+                {v.nr}
+              </Link>,
               v.name,
-              v.flaeche,
-              v.stand,
             ])}
           />
         ) : (
@@ -30,19 +34,6 @@ export default async function VerfahrensauswahlPage() {
             Dieser Bereich wird mit den persönlichen Daten Ihres Verfahrens
             verknüpft, sobald der Mitgliederlogin freigeschaltet ist.
           </p>
-        )}
-        {list.length > 0 && (
-          <div className="mt-6 flex flex-wrap gap-3">
-            {list.map((v) => (
-              <Link
-                key={v.nr}
-                href={`/mitgliederbereich/verfahrensdaten?verfahren=${v.nr}`}
-                className="inline-flex items-center gap-1.5 rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:border-vtg-orange hover:text-vtg-orange"
-              >
-                {v.name} öffnen ›
-              </Link>
-            ))}
-          </div>
         )}
       </section>
     </>

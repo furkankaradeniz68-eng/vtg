@@ -3,7 +3,7 @@ export default function SimpleTable({
   rows,
 }: {
   columns: string[];
-  rows: (string | number)[][];
+  rows: React.ReactNode[][];
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-200">
