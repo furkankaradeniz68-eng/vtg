@@ -2465,9 +2465,27 @@ export const verfahren: Verfahren[] = [
   },
 ];
 
+// DLR-Login-Zuordnung: jede Nummer-Kennziffer (erste Ziffer der VKZ) gehoert zu
+// einem festen DLR-Dienstsitz (DLR-Benutzer-Liste.csv). DLR 5 hat zwei
+// Dienstsitze (Prüm, Bittburg), die beide dieselbe Ziffer sehen.
+const DLR_ZIFFER_ZU_DIENSTSITZ: Record<string, string[]> = {
+  "1": ["Bernkastel-Kues"],
+  "2": ["Kaiserslautern"],
+  "3": ["Mayen"],
+  "4": ["Neustadt"],
+  "5": ["Prüm", "Bittburg"],
+  "6": ["Simmern"],
+  "7": ["Trier"],
+  "8": ["Montabaur"],
+  "9": ["BadKreuznach"],
+};
+
 export const verfahrenByKreis: Record<string, Verfahren[]> = verfahren.reduce(
   (acc, v) => {
-    (acc[v.dienstsitz] ??= []).push(v);
+    const ziffer = v.nr[0];
+    for (const dienstsitz of DLR_ZIFFER_ZU_DIENSTSITZ[ziffer] ?? []) {
+      (acc[dienstsitz] ??= []).push(v);
+    }
     return acc;
   },
   {} as Record<string, Verfahren[]>,
