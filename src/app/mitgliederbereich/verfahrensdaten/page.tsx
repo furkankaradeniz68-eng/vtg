@@ -3,6 +3,7 @@ import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import { requireSession } from "@/lib/auth";
 import { findVerfahren } from "@/lib/verfahren-beispieldaten";
+import { getPersonendaten } from "@/lib/verfahren-personendaten";
 
 export const metadata: Metadata = { title: "Verfahrensdaten | VTG Rheinland-Pfalz" };
 
@@ -14,6 +15,7 @@ export default async function VerfahrensdatenPage({
   const session = await requireSession();
   const { id } = await searchParams;
   const verfahren = id ? findVerfahren(id) : undefined;
+  const personendaten = id ? getPersonendaten(id) : undefined;
   const showBackButton = session.role === "dlr" || session.role === "admin";
 
   return (
@@ -43,15 +45,17 @@ export default async function VerfahrensdatenPage({
               <p>
                 <strong className="text-neutral-900">Landkreis:</strong> {verfahren.landkreis}
               </p>
-              <p>
-                <strong className="text-neutral-900">TG-Vorsitzender:</strong>
-                <br />
-                {verfahren.vorsitzender.name}
-                <br />
-                {verfahren.vorsitzender.strasse}
-                <br />
-                {verfahren.vorsitzender.plzOrt}
-              </p>
+              {personendaten && (
+                <p>
+                  <strong className="text-neutral-900">TG-Vorsitzender:</strong>
+                  <br />
+                  {personendaten.vorsitzender.name}
+                  <br />
+                  {personendaten.vorsitzender.strasse}
+                  <br />
+                  {personendaten.vorsitzender.plzOrt}
+                </p>
+              )}
             </div>
 
             <Link
@@ -61,16 +65,18 @@ export default async function VerfahrensdatenPage({
               Zur Finanzübersicht
             </Link>
 
-            <div className="mt-10 overflow-hidden rounded-lg border border-neutral-200">
-              <iframe
-                title={`Standort ${verfahren.name}`}
-                src={`https://maps.google.com/maps?q=${verfahren.koordinaten.lat},${verfahren.koordinaten.lng}&z=15&output=embed`}
-                width="100%"
-                height="400"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </div>
+            {personendaten?.koordinaten && (
+              <div className="mt-10 overflow-hidden rounded-lg border border-neutral-200">
+                <iframe
+                  title={`Standort ${verfahren.name}`}
+                  src={`https://maps.google.com/maps?q=${personendaten.koordinaten.lat},${personendaten.koordinaten.lng}&z=15&output=embed`}
+                  width="100%"
+                  height="400"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )}
           </>
         ) : (
           <p className="text-base leading-relaxed text-neutral-700">

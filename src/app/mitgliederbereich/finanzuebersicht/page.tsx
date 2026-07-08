@@ -3,6 +3,7 @@ import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import { requireSession } from "@/lib/auth";
 import { findVerfahren } from "@/lib/verfahren-beispieldaten";
+import { getPersonendaten } from "@/lib/verfahren-personendaten";
 
 export const metadata: Metadata = { title: "Finanzübersicht | VTG Rheinland-Pfalz" };
 
@@ -20,6 +21,7 @@ export default async function FinanzuebersichtPage({
   await requireSession();
   const { id } = await searchParams;
   const verfahren = id ? findVerfahren(id) : undefined;
+  const personendaten = id ? getPersonendaten(id) : undefined;
 
   return (
     <>
@@ -27,10 +29,33 @@ export default async function FinanzuebersichtPage({
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         {verfahren ? (
           <>
-            <p className="mb-6 text-base leading-relaxed text-neutral-700">
-              Finanzübersicht für {verfahren.name} (Produkt-Nr. {verfahren.nr}).
-            </p>
-            <ul className="flex flex-col gap-3">
+            <div className="space-y-3 text-base leading-relaxed text-neutral-700">
+              <p>
+                <strong className="text-neutral-900">Produktnummer:</strong> {verfahren.nr}
+              </p>
+              <p>
+                <strong className="text-neutral-900">Verfahren:</strong> {verfahren.name}
+              </p>
+              <p>
+                <strong className="text-neutral-900">Aktenzeichen:</strong> {verfahren.aktenzeichen}
+              </p>
+              <p>
+                <strong className="text-neutral-900">Landkreis:</strong> {verfahren.landkreis}
+              </p>
+              {personendaten && (
+                <p>
+                  <strong className="text-neutral-900">TG-Vorsitzender:</strong>
+                  <br />
+                  {personendaten.vorsitzender.name}
+                  <br />
+                  {personendaten.vorsitzender.strasse}
+                  <br />
+                  {personendaten.vorsitzender.plzOrt}
+                </p>
+              )}
+            </div>
+
+            <ul className="mt-8 flex flex-col gap-3">
               {berichte.map((bericht) => (
                 <li key={bericht.href}>
                   <Link
