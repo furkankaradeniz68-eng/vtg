@@ -14,6 +14,8 @@ export type Verfahren = {
     plzOrt: string;
   };
   koordinaten: { lat: number; lng: number };
+  hj: number;
+  stand: string;
 };
 
 export const verfahrenByKreis: Record<string, Verfahren[]> = {
@@ -29,6 +31,8 @@ export const verfahrenByKreis: Record<string, Verfahren[]> = {
         plzOrt: "54470 Bernkastel-Kues",
       },
       koordinaten: { lat: 49.9167, lng: 7.0667 },
+      hj: 2024,
+      stand: "31.12.2024",
     },
     {
       nr: "V-1002",
@@ -41,6 +45,8 @@ export const verfahrenByKreis: Record<string, Verfahren[]> = {
         plzOrt: "54470 Bernkastel-Kues",
       },
       koordinaten: { lat: 49.92, lng: 7.07 },
+      hj: 2024,
+      stand: "31.12.2024",
     },
     {
       nr: "V-1003",
@@ -53,6 +59,8 @@ export const verfahrenByKreis: Record<string, Verfahren[]> = {
         plzOrt: "54470 Bernkastel-Kues",
       },
       koordinaten: { lat: 49.91, lng: 7.06 },
+      hj: 2024,
+      stand: "31.12.2024",
     },
   ],
 };
