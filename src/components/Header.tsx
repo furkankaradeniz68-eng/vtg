@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { mainNav, isFileHref, type NavItem } from "@/lib/nav";
+import { mainNav, isFileHref, type MemberRole, type NavItem } from "@/lib/nav";
+import Header2 from "@/components/Header2";
 
 function SubmenuLink({
   href,
@@ -150,7 +151,13 @@ function MobileMenu({ items, onNavigate }: { items: NavItem[]; onNavigate: () =>
   );
 }
 
-export default function Header({ loggedIn }: { loggedIn: boolean }) {
+export default function Header({
+  loggedIn,
+  role,
+}: {
+  loggedIn: boolean;
+  role: MemberRole | null;
+}) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -190,6 +197,8 @@ export default function Header({ loggedIn }: { loggedIn: boolean }) {
             <span className="h-0.5 w-6 bg-neutral-900" />
           </button>
         </div>
+
+        {role && <Header2 role={role} />}
 
         <nav className="hidden lg:block">
           <ul className="flex items-center gap-8">

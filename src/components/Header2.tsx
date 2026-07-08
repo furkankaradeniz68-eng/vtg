@@ -43,10 +43,19 @@ export default function Header2({ role }: { role: MemberRole | null }) {
   const secondRow = header2SecondRow[role];
 
   return (
-    <div className="border-b border-neutral-200 bg-neutral-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <ul className="flex flex-wrap items-center gap-x-6 gap-y-1 py-2">
-          {items.map((item) => (
+    <div>
+      <ul className="flex flex-wrap items-center gap-x-6 gap-y-1 py-2">
+        {items.map((item) => (
+          <li key={item.href}>
+            <Header2Link href={item.href} active={pathname === item.href}>
+              {item.label}
+            </Header2Link>
+          </li>
+        ))}
+      </ul>
+      {secondRow && (
+        <ul className="flex flex-wrap items-center gap-x-6 gap-y-1 pb-2">
+          {secondRow.map((item) => (
             <li key={item.href}>
               <Header2Link href={item.href} active={pathname === item.href}>
                 {item.label}
@@ -54,18 +63,7 @@ export default function Header2({ role }: { role: MemberRole | null }) {
             </li>
           ))}
         </ul>
-        {secondRow && (
-          <ul className="flex flex-wrap items-center gap-x-6 gap-y-1 pb-2">
-            {secondRow.map((item) => (
-              <li key={item.href}>
-                <Header2Link href={item.href} active={pathname === item.href}>
-                  {item.label}
-                </Header2Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      )}
     </div>
   );
 }

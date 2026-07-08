@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Montserrat, Roboto } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import Header2 from "@/components/Header2";
 import Footer from "@/components/Footer";
 import { getSession } from "@/lib/auth";
 import type { MemberRole } from "@/lib/nav";
@@ -39,8 +38,7 @@ export default async function RootLayout({
       className={`${montserrat.variable} ${roboto.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Header2 role={role} />
-        <Header loggedIn={!!session} />
+        <Header loggedIn={!!session} role={role} />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>
