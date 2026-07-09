@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import { requireSession } from "@/lib/auth";
-import { findVerfahren } from "@/lib/verfahren-beispieldaten";
+import { findVerfahren, istVerfahrenErreichbar } from "@/lib/verfahren-beispieldaten";
 import {
   finanzKategorien,
   finanzUebersichtKennzahlenBeispiel,
@@ -34,9 +34,11 @@ export default async function FinanzuebersichtPage({
 }: {
   searchParams: Promise<{ id?: string }>;
 }) {
-  await requireSession();
-  const { id } = await searchParams;
-  const verfahren = id ? findVerfahren(id) : undefined;
+  const session = await requireSession();
+  const { id: rawId } = await searchParams;
+  const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
+  const zugriffErlaubt = id ? istVerfahrenErreichbar(session, id) : false;
+  const verfahren = zugriffErlaubt && id ? findVerfahren(id) : undefined;
   const k = finanzUebersichtKennzahlenBeispiel;
 
   return (
@@ -113,6 +115,8 @@ export default async function FinanzuebersichtPage({
               ))}
             </ul>
           </>
+        ) : id && !zugriffErlaubt ? (
+          <p className="text-base leading-relaxed text-neutral-700">Kein Zugriff auf diese Daten.</p>
         ) : (
           <p className="text-base leading-relaxed text-neutral-700">
             Dieser Bereich wird mit den persönlichen Finanzdaten Ihres Verfahrens

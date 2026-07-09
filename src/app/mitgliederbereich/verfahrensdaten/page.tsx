@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import { requireSession } from "@/lib/auth";
-import { findVerfahren } from "@/lib/verfahren-beispieldaten";
+import { findVerfahren, istVerfahrenErreichbar } from "@/lib/verfahren-beispieldaten";
 import { getPersonendaten } from "@/lib/verfahren-personendaten";
 
 export const metadata: Metadata = { title: "Verfahrensdaten | VTG Rheinland-Pfalz" };
@@ -13,9 +13,11 @@ export default async function VerfahrensdatenPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const session = await requireSession();
-  const { id } = await searchParams;
-  const verfahren = id ? findVerfahren(id) : undefined;
-  const personendaten = id ? await getPersonendaten(id) : undefined;
+  const { id: rawId } = await searchParams;
+  const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
+  const zugriffErlaubt = id ? istVerfahrenErreichbar(session, id) : false;
+  const verfahren = zugriffErlaubt && id ? findVerfahren(id) : undefined;
+  const personendaten = verfahren ? await getPersonendaten(verfahren.nr) : undefined;
   const showBackButton = session.role === "dlr" || session.role === "admin";
 
   return (
@@ -78,6 +80,8 @@ export default async function VerfahrensdatenPage({
               </div>
             )}
           </>
+        ) : id && !zugriffErlaubt ? (
+          <p className="text-base leading-relaxed text-neutral-700">Kein Zugriff auf diese Daten.</p>
         ) : (
           <p className="text-base leading-relaxed text-neutral-700">
             Dieser Bereich wird mit den persönlichen Daten Ihres Verfahrens

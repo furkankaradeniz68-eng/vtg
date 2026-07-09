@@ -4,6 +4,8 @@
 // CREDENTIALS_JSON, ausschliesslich in der git-ignorierten VERFAHREN_PERSONENDATEN_JSON
 // env var und werden zur Laufzeit ueber src/lib/verfahren-personendaten.ts nachgeladen.
 
+import type { SessionRole } from "@/lib/auth";
+
 export type Verfahren = {
   nr: string;
   name: string;
@@ -2493,4 +2495,17 @@ export const verfahrenByKreis: Record<string, Verfahren[]> = verfahren.reduce(
 
 export function findVerfahren(nr: string): Verfahren | undefined {
   return verfahren.find((v) => v.nr === nr);
+}
+
+// Zugriffsregeln (analog zur urspruenglichen WP-Rollenlogik):
+// Abonnent sieht nur die eigene Produktnummer (username == produkt_nr),
+// DLR sieht nur Verfahren seines Dienstsitzes (verfahrenByKreis[username]),
+// Admin hat vollen Zugriff auf alle Verfahren.
+export function istVerfahrenErreichbar(
+  session: { role: SessionRole; username: string },
+  nr: string,
+): boolean {
+  if (session.role === "admin") return true;
+  if (session.role === "abonnent") return nr === session.username;
+  return (verfahrenByKreis[session.username] ?? []).some((v) => v.nr === nr);
 }

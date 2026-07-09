@@ -9,8 +9,9 @@ export default async function AusfuehrungskostenA1HaushaltsjahrPage({
 }: {
   searchParams: Promise<{ id?: string }>;
 }) {
-  await requireSession();
-  const { id } = await searchParams;
+  const session = await requireSession();
+  const { id: rawId } = await searchParams;
+  const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
   const query = id ? `?id=${id}` : "";
 
   return (
@@ -18,6 +19,7 @@ export default async function AusfuehrungskostenA1HaushaltsjahrPage({
       kategorieSlug="ausfuehrungskosten-a1"
       ansicht="haushaltsjahr"
       verfahrenId={id}
+      session={session}
       laufzeitHref={`/mitgliederbereich/ausfuehrungskosten-a1-laufzeit${query}`}
       haushaltsjahrHref={`/mitgliederbereich/ausfuehrungskosten-a1-haushaltsjahr${query}`}
     />

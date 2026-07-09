@@ -9,8 +9,9 @@ export default async function EinnahmenHaushaltsjahrPage({
 }: {
   searchParams: Promise<{ id?: string }>;
 }) {
-  await requireSession();
-  const { id } = await searchParams;
+  const session = await requireSession();
+  const { id: rawId } = await searchParams;
+  const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
   const query = id ? `?id=${id}` : "";
 
   return (
@@ -18,6 +19,7 @@ export default async function EinnahmenHaushaltsjahrPage({
       kategorieSlug="einnahmen"
       ansicht="haushaltsjahr"
       verfahrenId={id}
+      session={session}
       laufzeitHref={`/mitgliederbereich/einnahmen-laufzeit${query}`}
       haushaltsjahrHref={`/mitgliederbereich/einnahmen-haushaltsjahr${query}`}
     />

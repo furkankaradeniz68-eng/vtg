@@ -1,24 +1,28 @@
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import FinanzberichtTabelle from "@/components/FinanzberichtTabelle";
-import { findVerfahren } from "@/lib/verfahren-beispieldaten";
-import { finanzKategorien, type FinanzKategorieSlug } from "@/lib/finanzbericht-beispieldaten";
+import { findVerfahren, istVerfahrenErreichbar } from "@/lib/verfahren-beispieldaten";
+import { findeFinanzKategorie, type FinanzKategorieSlug } from "@/lib/finanzbericht-beispieldaten";
+import type { SessionPayload } from "@/lib/auth";
 
 export default function FinanzberichtSeite({
   kategorieSlug,
   ansicht,
   verfahrenId,
+  session,
   laufzeitHref,
   haushaltsjahrHref,
 }: {
   kategorieSlug: FinanzKategorieSlug;
   ansicht: "laufzeit" | "haushaltsjahr";
   verfahrenId?: string;
+  session: SessionPayload;
   laufzeitHref: string;
   haushaltsjahrHref: string;
 }) {
-  const kategorie = finanzKategorien[kategorieSlug];
-  const verfahren = verfahrenId ? findVerfahren(verfahrenId) : undefined;
+  const kategorie = findeFinanzKategorie(kategorieSlug, ansicht);
+  const zugriffErlaubt = verfahrenId ? istVerfahrenErreichbar(session, verfahrenId) : false;
+  const verfahren = zugriffErlaubt && verfahrenId ? findVerfahren(verfahrenId) : undefined;
   const ansichtLabel = ansicht === "laufzeit" ? "Laufzeit" : "Haushaltsjahr";
   const planLabel = ansicht === "laufzeit" ? "FinPL" : "Jahresprogramm";
   const heroTitel = kategorie.suffix ? `${kategorie.titel}/${kategorie.suffix}` : kategorie.titel;
@@ -67,6 +71,8 @@ export default function FinanzberichtSeite({
             </p>
             <FinanzberichtTabelle planLabel={planLabel} zeilen={kategorie.zeilen} />
           </>
+        ) : verfahrenId && !zugriffErlaubt ? (
+          <p className="text-base leading-relaxed text-neutral-700">Kein Zugriff auf diese Daten.</p>
         ) : (
           <p className="text-base leading-relaxed text-neutral-700">
             Dieser Bericht wird mit den Echtzeit-Finanzdaten Ihres Verfahrens verknüpft,

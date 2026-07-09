@@ -3,13 +3,13 @@ import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import SimpleTable from "@/components/SimpleTable";
 import { requireInternSession } from "@/lib/auth";
-import { verfahrenByKreis } from "@/lib/verfahren-beispieldaten";
+import { verfahren, verfahrenByKreis } from "@/lib/verfahren-beispieldaten";
 
 export const metadata: Metadata = { title: "Verfahrensauswahl | VTG Rheinland-Pfalz" };
 
 export default async function VerfahrensauswahlPage() {
   const session = await requireInternSession();
-  const list = verfahrenByKreis[session.username] ?? [];
+  const list = session.role === "admin" ? verfahren : (verfahrenByKreis[session.username] ?? []);
 
   return (
     <>
