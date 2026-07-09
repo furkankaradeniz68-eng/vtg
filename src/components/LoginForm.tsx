@@ -29,7 +29,13 @@ export default function LoginForm() {
       return;
     }
 
-    router.push(data.role === "dlr" ? "/mitgliederbereich/verfahrensauswahl" : "/");
+    const ziel =
+      data.role === "dlr"
+        ? "/mitgliederbereich/verfahrensauswahl"
+        : data.role === "abonnent"
+          ? "/mitgliederbereich/verfahrensdaten"
+          : "/";
+    router.push(ziel);
     router.refresh();
   }
 

@@ -12,13 +12,17 @@ import {
 export const metadata: Metadata = { title: "Finanzübersicht | VTG Rheinland-Pfalz" };
 
 const berichte: { titel: string; href: string; kategorieSlug: FinanzKategorieSlug }[] = [
-  { titel: "Ausführungskosten/A1", href: "ausfuehrungskosten-a1-laufzeit", kategorieSlug: "ausfuehrungskosten-a1" },
+  {
+    titel: "Ausführungskosten/A1",
+    href: "ausfuehrungskosten-a1-haushaltsjahr",
+    kategorieSlug: "ausfuehrungskosten-a1",
+  },
   {
     titel: "Sonstige Ausführungskosten/A2",
-    href: "sonstige-ausfuehrungskosten-a2-laufzeit",
+    href: "sonstige-ausfuehrungskosten-a2-haushaltsjahr",
     kategorieSlug: "sonstige-ausfuehrungskosten-a2",
   },
-  { titel: "Einnahmen", href: "einnahmen-laufzeit", kategorieSlug: "einnahmen" },
+  { titel: "Einnahmen", href: "einnahmen-haushaltsjahr", kategorieSlug: "einnahmen" },
 ];
 
 function formatEuro(n: number) {
