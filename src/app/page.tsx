@@ -1,7 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
+import { isPortalHost } from "@/lib/site-mode";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const host = (await headers()).get("host");
+  const portalMode = isPortalHost(host);
+
   return (
     <>
       <section className="relative flex h-[70vh] min-h-[480px] items-center overflow-hidden">
@@ -23,17 +28,25 @@ export default function HomePage() {
           <p className="mt-4 max-w-2xl text-lg text-neutral-100">
             Gemeinsam für geordnete Bodenentwicklung in Rheinland-Pfalz.
           </p>
-          <Link
-            href="/ueberblick"
-            className="mt-8 inline-block rounded bg-vtg-orange px-8 py-3 font-heading text-sm font-bold uppercase tracking-wide text-neutral-900 transition hover:bg-vtg-yellow"
-          >
-            Überblick
-          </Link>
+          {!portalMode && (
+            <Link
+              href="/ueberblick"
+              className="mt-8 inline-block rounded bg-vtg-orange px-8 py-3 font-heading text-sm font-bold uppercase tracking-wide text-neutral-900 transition hover:bg-vtg-yellow"
+            >
+              Überblick
+            </Link>
+          )}
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
+        <div
+          className={
+            portalMode
+              ? "grid grid-cols-1 gap-12"
+              : "grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16"
+          }
+        >
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-vtg-orange">
               Wer wir sind
@@ -80,14 +93,20 @@ export default function HomePage() {
                 Satzung selbst.
               </p>
               <p>
-                Sitz der &gt;{" "}
-                <Link
-                  href="/geschaeftsstelle"
-                  className="font-bold text-vtg-orange hover:underline"
-                >
-                  Geschäftsstelle
-                </Link>{" "}
-                &lt; ist Neustadt / Weinstrasse.
+                {portalMode ? (
+                  <>Sitz der Geschäftsstelle ist Neustadt / Weinstrasse.</>
+                ) : (
+                  <>
+                    Sitz der &gt;{" "}
+                    <Link
+                      href="/geschaeftsstelle"
+                      className="font-bold text-vtg-orange hover:underline"
+                    >
+                      Geschäftsstelle
+                    </Link>{" "}
+                    &lt; ist Neustadt / Weinstrasse.
+                  </>
+                )}
               </p>
               <p>
                 Die folgenden Seiten sollen Ihnen zum einen Überblick über
@@ -97,29 +116,33 @@ export default function HomePage() {
                 aus der Buchhaltung abzurufen.
               </p>
             </div>
-            <Link
-              href="/ueberblick"
-              className="mt-8 inline-block rounded bg-vtg-yellow px-8 py-3 font-heading text-sm font-bold uppercase tracking-wide text-neutral-900 transition hover:bg-vtg-orange"
-            >
-              zum überblick
-            </Link>
+            {!portalMode && (
+              <Link
+                href="/ueberblick"
+                className="mt-8 inline-block rounded bg-vtg-yellow px-8 py-3 font-heading text-sm font-bold uppercase tracking-wide text-neutral-900 transition hover:bg-vtg-orange"
+              >
+                zum überblick
+              </Link>
+            )}
           </div>
-          <div className="flex flex-col gap-4">
-            {[
-              { title: "Verwaltung", image: "/images/ueberblick/Verwaltung.jpg" },
-              { title: "Fortbildung", image: "/images/ueberblick/Fortbildung.jpg" },
-              { title: "Ausbau", image: "/images/ueberblick/Ausbau.jpg" },
-            ].map((item) => (
-              <div key={item.title} className="relative h-80 w-full overflow-hidden rounded-lg">
-                <Image
-                  src={item.image}
-                  alt={item.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ))}
-          </div>
+          {!portalMode && (
+            <div className="flex flex-col gap-4">
+              {[
+                { title: "Verwaltung", image: "/images/ueberblick/Verwaltung.jpg" },
+                { title: "Fortbildung", image: "/images/ueberblick/Fortbildung.jpg" },
+                { title: "Ausbau", image: "/images/ueberblick/Ausbau.jpg" },
+              ].map((item) => (
+                <div key={item.title} className="relative h-80 w-full overflow-hidden rounded-lg">
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </>

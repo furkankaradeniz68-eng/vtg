@@ -2,8 +2,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { footerNav } from "@/lib/nav";
 
-export default function Footer() {
+export default function Footer({ portalMode = false }: { portalMode?: boolean }) {
   const year = new Date().getFullYear();
+
+  // Auf der reduzierten Portal-Domain (z. B. VTG NRW) nur Startseite, Login/
+  // Mitgliederbereich sowie die Pflichtangaben nach TMG zeigen (siehe
+  // src/lib/site-mode.ts).
+  const serviceLinks = portalMode
+    ? footerNav.service.filter((item) => item.href === "/")
+    : footerNav.service;
+  const uebersichtLinks = portalMode ? [] : footerNav.uebersicht;
+  const legalLinks = portalMode
+    ? footerNav.legal.filter(
+        (item) => item.href === "/impressum" || item.href === "/datenschutzerklaerung",
+      )
+    : footerNav.legal;
 
   return (
     <footer className="border-t-[1.5px] border-vtg-yellow bg-white text-neutral-800">
@@ -26,7 +39,7 @@ export default function Footer() {
 
           <div className="flex flex-1 flex-col gap-8 py-4 sm:flex-row sm:justify-end sm:gap-16">
             <ul className="flex flex-col gap-1.5 text-sm">
-              {footerNav.service.map((item) => (
+              {serviceLinks.map((item) => (
                 <li key={item.href} className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 bg-neutral-900" />
                   <Link href={item.href} className="hover:text-vtg-orange">
@@ -36,16 +49,18 @@ export default function Footer() {
               ))}
             </ul>
 
-            <ul className="flex flex-col gap-1.5 text-sm">
-              {footerNav.uebersicht.map((item) => (
-                <li key={item.href} className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 shrink-0 bg-neutral-900" />
-                  <Link href={item.href} className="hover:text-vtg-orange">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {uebersichtLinks.length > 0 && (
+              <ul className="flex flex-col gap-1.5 text-sm">
+                {uebersichtLinks.map((item) => (
+                  <li key={item.href} className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 shrink-0 bg-neutral-900" />
+                    <Link href={item.href} className="hover:text-vtg-orange">
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
@@ -55,7 +70,7 @@ export default function Footer() {
             Rheinland-Pfalz. Körperschaft des öffentliche Rechts.
           </p>
           <ul className="flex flex-wrap items-center gap-3">
-            {footerNav.legal.map((item, i) => (
+            {legalLinks.map((item, i) => (
               <li key={item.href} className="flex items-center gap-3">
                 {i > 0 && <span>|</span>}
                 <Link href={item.href} className="hover:text-vtg-orange">
