@@ -30,7 +30,7 @@ export default function LoginForm() {
     }
 
     const ziel =
-      data.role === "dlr"
+      data.role === "dlr" || data.role === "admin"
         ? "/mitgliederbereich/verfahrensauswahl"
         : data.role === "abonnent"
           ? "/mitgliederbereich/verfahrensdaten"
