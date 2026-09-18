@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.redirect(
-    new URL(`/mitgliederbereich/downloads-verwalten?tab=website&category=${category}`, request.url),
+    new URL(`/admin?tab=website&category=${category}`, request.url),
     303,
   );
 }

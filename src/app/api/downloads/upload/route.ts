@@ -43,5 +43,5 @@ export async function POST(request: Request) {
     expiresAt: expiresAt.toISOString(),
   });
 
-  return NextResponse.redirect(new URL("/mitgliederbereich/downloads-verwalten", request.url), 303);
+  return NextResponse.redirect(new URL("/admin", request.url), 303);
 }

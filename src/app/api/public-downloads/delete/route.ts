@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   await removePublicDownload(id);
 
   return NextResponse.redirect(
-    new URL(`/mitgliederbereich/downloads-verwalten?tab=website&category=${category}`, request.url),
+    new URL(`/admin?tab=website&category=${category}`, request.url),
     303,
   );
 }

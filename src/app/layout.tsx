@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Montserrat, Roboto } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import SiteChrome from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
 import { isPortalHost } from "@/lib/site-mode";
 import type { MemberRole } from "@/lib/nav";
@@ -42,9 +41,9 @@ export default async function RootLayout({
       className={`${montserrat.variable} ${roboto.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Header loggedIn={!!session} role={role} portalMode={portalMode} />
-        <main className="flex-1">{children}</main>
-        <Footer portalMode={portalMode} />
+        <SiteChrome loggedIn={!!session} role={role} portalMode={portalMode}>
+          {children}
+        </SiteChrome>
       </body>
     </html>
   );
