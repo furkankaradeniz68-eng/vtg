@@ -15,6 +15,14 @@ export default async function VerfahrensauswahlPage() {
     <>
       <PageHero title="Verfahrensauswahl" />
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        {session.role === "admin" && (
+          <Link
+            href="/mitgliederbereich/downloads-verwalten"
+            className="mb-6 inline-block bg-vtg-yellow px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-vtg-orange hover:text-white"
+          >
+            Downloads verwalten
+          </Link>
+        )}
         {list.length > 0 ? (
           <SimpleTable
             columns={["Produkt-Nr.", "Flurbereinigungsverfahren"]}

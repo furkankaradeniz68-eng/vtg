@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import SimpleTable from "@/components/SimpleTable";
 import { requireAdminSession } from "@/lib/auth";
@@ -20,6 +21,13 @@ export default async function DownloadsVerwaltenPage() {
     <>
       <PageHero title="Downloads verwalten" />
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <Link
+          href="/mitgliederbereich/verfahrensauswahl"
+          className="mb-6 inline-flex items-center gap-1.5 rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:border-vtg-orange hover:text-vtg-orange"
+        >
+          ‹ Zurück zur Verfahrensauswahl
+        </Link>
+
         <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Neue Datei zuweisen</h2>
         <form
           action="/api/downloads/upload"
