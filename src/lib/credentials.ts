@@ -46,3 +46,8 @@ export async function verifyCredentials(username: string, password: string): Pro
 
   return null;
 }
+
+export function listAbonnenten(): { username: string; label: string }[] {
+  const creds = loadCredentials();
+  return creds.abonnent.map((a) => ({ username: a.username, label: a.label }));
+}
