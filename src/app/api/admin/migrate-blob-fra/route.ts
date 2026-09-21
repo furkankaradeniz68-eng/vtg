@@ -1,8 +1,12 @@
-// TEMPORÄR: Einmalige Migration aller Blob-Dateien vom alten US-Store
-// (BLOB_READ_WRITE_TOKEN) in den neuen Frankfurt-Store (BLOB_FRA_READ_WRITE_TOKEN).
-// Nach erfolgreicher, verifizierter Migration und Umstellung von
-// BLOB_READ_WRITE_TOKEN auf den Frankfurt-Store: diese Route (und die
-// zugehörige Seite unter /admin/migrate-blob-fra) wieder entfernen.
+// TEMPORÄR: Einmalige Migration aller Blob-Dateien vom alten Store in den
+// neuen Frankfurt-Store (BLOB_FRA_READ_WRITE_TOKEN). Der alte Store ist über
+// Vercels OIDC-Mechanismus verbunden (nur BLOB_STORE_ID, kein statischer
+// Token) — daher werden list()/get() hier ohne explizites `token` aufgerufen
+// und lösen sich automatisch über OIDC + BLOB_STORE_ID auf. Nur der Schreib-
+// zugriff auf den neuen Store braucht den expliziten BLOB_FRA_READ_WRITE_TOKEN.
+// Nach erfolgreicher, verifizierter Migration und Umstellung auf den
+// Frankfurt-Store: diese Route (und die zugehörige Seite unter
+// /admin/migrate-blob-fra) wieder entfernen.
 //
 // Liest NIE Token-Werte aus der Umgebung heraus in die Response — nur Pfade,
 // Zähler und Fehlermeldungen werden zurückgegeben.
@@ -13,15 +17,17 @@ import { requireAdminSession } from "@/lib/auth";
 export async function POST() {
   await requireAdminSession();
 
-  const oldToken = process.env.BLOB_READ_WRITE_TOKEN;
   const newToken = process.env.BLOB_FRA_READ_WRITE_TOKEN;
 
-  if (!oldToken || !newToken) {
+  if (!process.env.BLOB_STORE_ID) {
     return NextResponse.json(
-      {
-        error:
-          "BLOB_READ_WRITE_TOKEN oder BLOB_FRA_READ_WRITE_TOKEN fehlt in den Umgebungsvariablen dieses Deployments.",
-      },
+      { error: "BLOB_STORE_ID (alter Store, für OIDC-Zugriff) fehlt in den Umgebungsvariablen dieses Deployments." },
+      { status: 500 },
+    );
+  }
+  if (!newToken) {
+    return NextResponse.json(
+      { error: "BLOB_FRA_READ_WRITE_TOKEN (neuer Frankfurt-Store) fehlt in den Umgebungsvariablen dieses Deployments." },
       { status: 500 },
     );
   }
@@ -31,13 +37,12 @@ export async function POST() {
 
   let cursor: string | undefined;
   do {
-    const page = await list({ token: oldToken, cursor, limit: 1000 });
+    const page = await list({ cursor, limit: 1000 });
 
     for (const item of page.blobs) {
       try {
         const source = await get(item.pathname, {
           access: "private",
-          token: oldToken,
           useCache: false,
         });
 
