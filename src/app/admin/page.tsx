@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SimpleTable from "@/components/SimpleTable";
 import AbonnentSearchSelect from "@/components/AbonnentSearchSelect";
+import PersonenSearchTable from "@/components/PersonenSearchTable";
 import { listAbonnenten } from "@/lib/credentials";
 import { getAllDownloads, isDownloadActive } from "@/lib/downloads";
 import { getPublicDownloadsByCategory, type PublicDownloadCategory } from "@/lib/public-downloads";
+import { getAllPersonen, PERSON_PAGES } from "@/lib/personen";
 
 export const metadata: Metadata = { title: "Admin-Dashboard | VTG Rheinland-Pfalz" };
 
@@ -12,7 +14,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE");
 }
 
-type Tab = "mitglieder" | "website";
+type Tab = "mitglieder" | "website" | "personen";
 
 const CATEGORIES: { key: PublicDownloadCategory; label: string; publicHref: string }[] = [
   { key: "satzung-vordrucke", label: "Satzung und Vordrucke", publicHref: "/download-satzung-vordrucke" },
@@ -49,7 +51,7 @@ export default async function AdminDashboardPage({
   searchParams: Promise<{ tab?: string; category?: string }>;
 }) {
   const { tab: rawTab, category: rawCategory } = await searchParams;
-  const tab: Tab = rawTab === "website" ? "website" : "mitglieder";
+  const tab: Tab = rawTab === "website" ? "website" : rawTab === "personen" ? "personen" : "mitglieder";
   const activeCategory =
     CATEGORIES.find((c) => c.key === rawCategory)?.key ?? CATEGORIES[0].key;
 
@@ -57,6 +59,8 @@ export default async function AdminDashboardPage({
   const downloads = await getAllDownloads();
   const publicEntries = tab === "website" ? await getPublicDownloadsByCategory(activeCategory) : [];
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === activeCategory)!;
+  const personen = tab === "personen" ? await getAllPersonen() : [];
+  const personPageLabels = Object.fromEntries(PERSON_PAGES.map((p) => [p.slug, p.label]));
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -67,9 +71,22 @@ export default async function AdminDashboardPage({
         <Link href={tabHref("website")} className={tabClass(tab === "website")}>
           Website-Downloads
         </Link>
+        <Link href={tabHref("personen")} className={tabClass(tab === "personen")}>
+          Personen
+        </Link>
       </nav>
 
-      {tab === "mitglieder" ? (
+      {tab === "personen" ? (
+        <>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-heading text-lg font-bold text-neutral-900">Personen verwalten</h2>
+            <Link href="/admin/personen/neu" className={primaryButtonClass}>
+              + Neue Person hinzufügen
+            </Link>
+          </div>
+          <PersonenSearchTable people={personen} pageLabels={personPageLabels} />
+        </>
+      ) : tab === "mitglieder" ? (
         <>
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Neue Datei zuweisen</h2>
           <form

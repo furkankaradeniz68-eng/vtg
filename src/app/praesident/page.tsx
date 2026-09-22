@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import PersonCard from "@/components/PersonCard";
+import { getPersonenByPage } from "@/lib/personen";
 
 export const metadata: Metadata = { title: "Präsident | VTG Rheinland-Pfalz" };
 
-export default function PraesidentPage() {
+export default async function PraesidentPage() {
+  const people = await getPersonenByPage("praesident");
+
   return (
     <>
       <PageHero title="Präsident" />
@@ -22,24 +25,9 @@ export default function PraesidentPage() {
           </ul>
         </div>
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <PersonCard
-            person={{
-              name: "Michael Haack",
-              role: "Präsident",
-              address: "Zweibrückerstr. 70, 66894 Martinshöhe",
-              phone: "(06372) 61238",
-              image: "/images/personen/vorstand/VS_MichaelHaack.JPG",
-            }}
-          />
-          <PersonCard
-            person={{
-              name: "Werner Görgen",
-              role: "stellvertretender Präsident",
-              address: "Weinbergstr. 1a, 54517 Platten",
-              phone: "(06535) 807",
-              image: "/images/personen/vorstand/VS_WernerGörgen.JPG",
-            }}
-          />
+          {people.map((p) => (
+            <PersonCard key={p.id} person={p} />
+          ))}
         </div>
       </section>
     </>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import PersonCard from "@/components/PersonCard";
+import { getPersonenByPage } from "@/lib/personen";
 
 export const metadata: Metadata = { title: "Geschäftsführer | VTG Rheinland-Pfalz" };
 
@@ -12,7 +13,9 @@ const aufgaben = [
   "nimmt an den Sitzungen der anderen Verbandsorgane ohne Stimmrecht teil",
 ];
 
-export default function GeschaeftsfuehrerPage() {
+export default async function GeschaeftsfuehrerPage() {
+  const people = await getPersonenByPage("geschaeftsfuehrer");
+
   return (
     <>
       <PageHero title="Geschäftsführer" />
@@ -31,30 +34,9 @@ export default function GeschaeftsfuehrerPage() {
           </ul>
         </div>
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <PersonCard
-            person={{
-              name: "Michael Zürker",
-              role: "Geschäftsführer",
-              address: "Zweibrückerstr. 70, 66894 Martinshöhe",
-              phone: "(06321) 4911-11",
-              mobile: "(0151) 10837906",
-              fax: "(06321) 4911-7011",
-              email: "michael.zuerker@vtg-rlp.de",
-              image: "/images/personen/GS_Michael_Zuerker.jpg",
-            }}
-          />
-          <PersonCard
-            person={{
-              name: "Guido Hübinger",
-              role: "stellvertretender Geschäftsführer",
-              address: "Zweibrückerstr. 70, 66894 Martinshöhe",
-              phone: "(06321) 4911-4132",
-              mobile: "(0151) 10837902",
-              fax: "(06321) 4911-7132",
-              email: "guido.huebinger@vtg-rlp.de",
-              image: "/images/personen/SI_Guido_Huebinger.jpg",
-            }}
-          />
+          {people.map((p) => (
+            <PersonCard key={p.id} person={p} />
+          ))}
         </div>
       </section>
     </>
