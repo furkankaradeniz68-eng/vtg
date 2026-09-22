@@ -10,6 +10,7 @@
 // personen/{id}-{dateiname} gespeichert (image = volle Blob-URL, blobPathname
 // gesetzt, damit beim Ersetzen/Loeschen der alte Blob aufgeraeumt wird).
 import { put, del, get } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 
 const META_PATHNAME = "personen-meta.json";
 
@@ -853,7 +854,9 @@ const DEFAULT_ENTRIES: PersonEntry[] = [
 // Keine Modul-weite Zwischenspeicherung, siehe downloads.ts/public-downloads.ts:
 // diese Metadaten werden von der Anwendung selbst laufend veraendert.
 async function loadPersonen(): Promise<PersonEntry[]> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false }).catch(() => null);
+  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
+    () => null,
+  );
   if (!result || result.statusCode !== 200) {
     await savePersonen(DEFAULT_ENTRIES);
     return DEFAULT_ENTRIES;
@@ -868,6 +871,7 @@ async function savePersonen(entries: PersonEntry[]): Promise<void> {
     contentType: "application/json",
     addRandomSuffix: false,
     allowOverwrite: true,
+    token: BLOB_TOKEN,
   });
 }
 
@@ -914,7 +918,7 @@ export async function updatePerson(id: string, changes: PersonChanges): Promise<
   if (!entry) return;
 
   if (changes.replaceImage && entry.blobPathname) {
-    await del(entry.blobPathname).catch(() => {});
+    await del(entry.blobPathname, { token: BLOB_TOKEN }).catch(() => {});
   }
 
   entry.page = changes.page;
@@ -942,7 +946,7 @@ export async function removePerson(id: string): Promise<void> {
   const entry = entries.find((e) => e.id === id);
   if (!entry) return;
   if (entry.blobPathname) {
-    await del(entry.blobPathname).catch(() => {});
+    await del(entry.blobPathname, { token: BLOB_TOKEN }).catch(() => {});
   }
   await savePersonen(entries.filter((e) => e.id !== id));
 }

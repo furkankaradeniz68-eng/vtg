@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { requireAdminSession } from "@/lib/auth";
 import { addPublicDownload, type PublicDownloadCategory } from "@/lib/public-downloads";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 
 const CATEGORIES: PublicDownloadCategory[] = ["satzung-vordrucke", "fachtagungen", "sonstiges"];
 
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
     access: "private",
     contentType: file.type || "application/octet-stream",
     addRandomSuffix: false,
+    token: BLOB_TOKEN,
   });
 
   await addPublicDownload({

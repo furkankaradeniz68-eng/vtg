@@ -3,6 +3,7 @@
 // Vercel-Blob-Speicher, nicht im Repo. Die eigentlichen Dateien liegen als
 // separate Blobs unter downloads/{id}-{dateiname}.
 import { put, del, get } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 
 const META_PATHNAME = "downloads-meta.json";
 
@@ -20,7 +21,9 @@ export type DownloadEntry = {
 // keine Modul-weite Zwischenspeicherung: sonst sehen parallele
 // Serverless-Aufrufe veraltete Stände.
 async function loadDownloads(): Promise<DownloadEntry[]> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false }).catch(() => null);
+  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
+    () => null,
+  );
   if (!result || result.statusCode !== 200) return [];
   const text = await new Response(result.stream).text();
   return JSON.parse(text) as DownloadEntry[];
@@ -32,6 +35,7 @@ async function saveDownloads(entries: DownloadEntry[]): Promise<void> {
     contentType: "application/json",
     addRandomSuffix: false,
     allowOverwrite: true,
+    token: BLOB_TOKEN,
   });
 }
 
@@ -63,6 +67,6 @@ export async function removeDownload(id: string): Promise<void> {
   const entries = await loadDownloads();
   const entry = entries.find((e) => e.id === id);
   if (!entry) return;
-  await del(entry.blobPathname).catch(() => {});
+  await del(entry.blobPathname, { token: BLOB_TOKEN }).catch(() => {});
   await saveDownloads(entries.filter((e) => e.id !== id));
 }

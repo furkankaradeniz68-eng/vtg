@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { requireAdminSession } from "@/lib/auth";
 import { addDownload } from "@/lib/downloads";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 
 export async function POST(request: Request) {
   await requireAdminSession();
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
     access: "private",
     contentType: file.type || "application/octet-stream",
     addRandomSuffix: false,
+    token: BLOB_TOKEN,
   });
 
   const now = new Date();

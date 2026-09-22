@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { requireAdminSession } from "@/lib/auth";
 import { updatePublicDownload } from "@/lib/public-downloads";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 
 export async function POST(request: Request) {
   await requireAdminSession();
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
       access: "private",
       contentType: file.type || "application/octet-stream",
       addRandomSuffix: false,
+      token: BLOB_TOKEN,
     });
     url = `/api/public-downloads/${id}`;
     blobPathname = blob.pathname;

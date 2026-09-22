@@ -5,6 +5,7 @@
 // sprengen, daher kein Env-Var-Ansatz hier (siehe BLOB_READ_WRITE_TOKEN).
 
 import { get } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 
 const BLOB_PATHNAME = "verfahren-personendaten.json";
 
@@ -20,7 +21,7 @@ let cachedPromise: Promise<PersonendatenMap> | null = null;
 async function loadPersonendaten(): Promise<PersonendatenMap> {
   if (!cachedPromise) {
     cachedPromise = (async () => {
-      const result = await get(BLOB_PATHNAME, { access: "private" });
+      const result = await get(BLOB_PATHNAME, { access: "private", token: BLOB_TOKEN });
       if (!result || result.statusCode !== 200) {
         throw new Error("Verfahren-Personendaten-Blob nicht gefunden.");
       }

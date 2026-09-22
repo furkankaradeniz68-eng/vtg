@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { requireAdminSession } from "@/lib/auth";
 import { addPerson, getPersonenByPage, PERSON_PAGES, type PersonPageSlug } from "@/lib/personen";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 
 const PAGE_SLUGS = PERSON_PAGES.map((p) => p.slug);
 
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
       access: "public",
       contentType: file.type || "application/octet-stream",
       addRandomSuffix: false,
+      token: BLOB_TOKEN,
     });
     image = blob.url;
     blobPathname = blob.pathname;

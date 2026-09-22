@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { get } from "@vercel/blob";
 import { requireSession } from "@/lib/auth";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 import { getDownloadById, isDownloadActive } from "@/lib/downloads";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -21,7 +22,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Download ist abgelaufen." }, { status: 410 });
   }
 
-  const result = await get(entry.blobPathname, { access: "private" }).catch(() => null);
+  const result = await get(entry.blobPathname, { access: "private", token: BLOB_TOKEN }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     return NextResponse.json({ error: "Datei nicht gefunden." }, { status: 404 });
   }

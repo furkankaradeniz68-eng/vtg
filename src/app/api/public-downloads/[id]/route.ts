@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { get } from "@vercel/blob";
 import { getPublicDownloadById } from "@/lib/public-downloads";
+import { BLOB_TOKEN } from "@/lib/blob-token";
 
 // Oeffentlich erreichbar (kein requireSession): dies sind Website-Downloads,
 // keine benutzergebundenen privaten Dateien. Der Blob-Store selbst laesst nur
@@ -14,7 +15,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Datei nicht gefunden." }, { status: 404 });
   }
 
-  const result = await get(entry.blobPathname, { access: "private" }).catch(() => null);
+  const result = await get(entry.blobPathname, { access: "private", token: BLOB_TOKEN }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     return NextResponse.json({ error: "Datei nicht gefunden." }, { status: 404 });
   }
