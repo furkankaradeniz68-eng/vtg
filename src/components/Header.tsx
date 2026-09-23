@@ -111,13 +111,22 @@ function MobileMenu({ items, onNavigate }: { items: NavItem[]; onNavigate: () =>
       {items.map((item) => (
         <li key={item.href} className="py-1">
           <div className="flex items-center justify-between">
-            <MobileMenuLink
-              href={item.href}
-              onClick={onNavigate}
-              className="flex-1 py-2 text-base font-medium text-neutral-900"
-            >
-              {item.label}
-            </MobileMenuLink>
+            {item.children ? (
+              // Wie im Desktop-Menü: Punkte mit eigenem Dropdown sind nur
+              // Gruppierung, ihre Zwischenseite ist nicht anwählbar — das
+              // "+" klappt das Untermenü auf.
+              <span className="flex-1 py-2 text-base font-medium text-neutral-900">
+                {item.label}
+              </span>
+            ) : (
+              <MobileMenuLink
+                href={item.href}
+                onClick={onNavigate}
+                className="flex-1 py-2 text-base font-medium text-neutral-900"
+              >
+                {item.label}
+              </MobileMenuLink>
+            )}
             {item.children && (
               <button
                 type="button"
@@ -235,16 +244,25 @@ export default function Header({
           <ul className="flex items-center gap-8">
             {navItems.map((item) => (
               <li key={item.href} className="group relative">
-                <Link
-                  href={item.href}
-                  className="relative flex items-center gap-1 py-3 text-base font-normal text-neutral-800 hover:text-vtg-orange"
-                >
-                  {item.label}
-                  {item.children && <span className="text-xs">▾</span>}
-                  {item.children && (
+                {item.children ? (
+                  // Punkte mit eigenem Dropdown (z.B. Über uns, Kontakt,
+                  // Downloads, Ausschreibung) sind bewusst nicht klickbar —
+                  // die Zwischen-Übersichtsseite ist überflüssig, es soll nur
+                  // das Dropdown aufklappen und direkt zum Unterpunkt
+                  // navigiert werden.
+                  <span className="relative flex cursor-default select-none items-center gap-1 py-3 text-base font-normal text-neutral-800 hover:text-vtg-orange">
+                    {item.label}
+                    <span className="text-xs">▾</span>
                     <span className="absolute inset-x-0 -bottom-px h-1 origin-left scale-x-0 bg-vtg-yellow transition-transform duration-150 group-hover:scale-x-100" />
-                  )}
-                </Link>
+                  </span>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className="relative flex items-center gap-1 py-3 text-base font-normal text-neutral-800 hover:text-vtg-orange"
+                  >
+                    {item.label}
+                  </Link>
+                )}
                 {item.children && (
                   <div className="invisible absolute opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
                     <DesktopSubmenu items={item.children} />
