@@ -3,13 +3,16 @@ import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import VerfahrenSearchTable from "@/components/VerfahrenSearchTable";
 import { requireInternSession } from "@/lib/auth";
-import { verfahren, verfahrenByKreis } from "@/lib/verfahren-beispieldaten";
+import { getAllVerfahren, getVerfahrenByKreis } from "@/lib/bc-companies";
 
 export const metadata: Metadata = { title: "Verfahrensauswahl | VTG Rheinland-Pfalz" };
 
 export default async function VerfahrensauswahlPage() {
   const session = await requireInternSession();
-  const list = session.role === "admin" ? verfahren : (verfahrenByKreis[session.username] ?? []);
+  const list =
+    session.role === "admin"
+      ? await getAllVerfahren()
+      : ((await getVerfahrenByKreis())[session.username] ?? []);
 
   return (
     <>

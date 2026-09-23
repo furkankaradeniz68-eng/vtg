@@ -1,12 +1,16 @@
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { SessionRole } from "@/lib/auth";
+import { findBcCompanyByHomepageUsername } from "@/lib/bc-companies";
 
-type AbonnentCredential = { username: string; passwordHash: string; label: string; dlr: string };
 type DlrCredential = { username: string; passwordHash: string; dlrNr: string };
 type AdminCredential = { username: string; passwordHash: string };
 
+// Abonnent-Logins kommen seit dem BC-Umstieg nicht mehr aus dieser Datei,
+// sondern live aus dem BC-Snapshot (homepageUsername/homepagePassword,
+// siehe bc-companies.ts). DLR und Admin sind in den BC-Daten nicht
+// enthalten und bleiben auf dem bisherigen bcrypt/CREDENTIALS_JSON-System.
 type CredentialsData = {
-  abonnent: AbonnentCredential[];
   dlr: DlrCredential[];
   admin: AdminCredential[];
 };
@@ -21,6 +25,15 @@ function loadCredentials(): CredentialsData {
   // (dotenv-expand) otherwise treats as a variable reference and strips.
   cached = JSON.parse(Buffer.from(raw, "base64").toString("utf-8")) as CredentialsData;
   return cached;
+}
+
+// BC liefert Passwoerter im Klartext (keine Hashes), daher Vergleich per
+// SHA-256-Digest + timingSafeEqual statt bcrypt.compare — verhindert sowohl
+// Timing-Angriffe als auch ein Laengen-Leak durch den Klartext-Vergleich.
+function timingSafePlaintextEqual(a: string, b: string): boolean {
+  const aHash = crypto.createHash("sha256").update(a).digest();
+  const bHash = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(aHash, bHash);
 }
 
 export type VerifiedUser = { role: SessionRole; username: string } | null;
@@ -39,15 +52,10 @@ export async function verifyCredentials(username: string, password: string): Pro
     return { role: "dlr", username: dlr.username };
   }
 
-  const abonnent = creds.abonnent.find((a) => a.username === name);
-  if (abonnent && (await bcrypt.compare(password, abonnent.passwordHash))) {
-    return { role: "abonnent", username: abonnent.username };
+  const bcCompany = await findBcCompanyByHomepageUsername(name);
+  if (bcCompany && bcCompany.homepagePassword && timingSafePlaintextEqual(password, bcCompany.homepagePassword)) {
+    return { role: "abonnent", username: bcCompany.homepageUsername };
   }
 
   return null;
-}
-
-export function listAbonnenten(): { username: string; label: string }[] {
-  const creds = loadCredentials();
-  return creds.abonnent.map((a) => ({ username: a.username, label: a.label }));
 }

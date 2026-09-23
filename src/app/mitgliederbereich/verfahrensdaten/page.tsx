@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import { requireSession } from "@/lib/auth";
-import { findVerfahren, istVerfahrenErreichbar } from "@/lib/verfahren-beispieldaten";
-import { getPersonendaten } from "@/lib/verfahren-personendaten";
+import { findVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
+import { getKoordinaten } from "@/lib/verfahren-personendaten";
 import { getDownloadsForUser } from "@/lib/downloads";
 
 export const metadata: Metadata = { title: "Verfahrensdaten | VTG Rheinland-Pfalz" };
@@ -16,9 +16,9 @@ export default async function VerfahrensdatenPage({
   const session = await requireSession();
   const { id: rawId } = await searchParams;
   const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
-  const zugriffErlaubt = id ? istVerfahrenErreichbar(session, id) : false;
-  const verfahren = zugriffErlaubt && id ? findVerfahren(id) : undefined;
-  const personendaten = verfahren ? await getPersonendaten(verfahren.nr) : undefined;
+  const zugriffErlaubt = id ? await istVerfahrenErreichbar(session, id) : false;
+  const verfahren = zugriffErlaubt && id ? await findVerfahren(id) : undefined;
+  const koordinaten = verfahren ? await getKoordinaten(verfahren.nr) : undefined;
   const showBackButton = session.role === "dlr" || session.role === "admin";
   const downloads = session.role === "abonnent" ? await getDownloadsForUser(session.username) : [];
 
@@ -49,15 +49,15 @@ export default async function VerfahrensdatenPage({
               <p>
                 <strong className="text-neutral-900">Landkreis:</strong> {verfahren.landkreis}
               </p>
-              {personendaten && (
+              {verfahren.chairperson && (
                 <p>
                   <strong className="text-neutral-900">TG-Vorsitzender:</strong>
                   <br />
-                  {personendaten.vorsitzender.name}
+                  {verfahren.chairperson}
                   <br />
-                  {personendaten.vorsitzender.strasse}
+                  {verfahren.address}
                   <br />
-                  {personendaten.vorsitzender.plzOrt}
+                  {verfahren.postCode} {verfahren.city}
                 </p>
               )}
             </div>
@@ -90,11 +90,11 @@ export default async function VerfahrensdatenPage({
               </div>
             )}
 
-            {personendaten?.koordinaten && (
+            {koordinaten && (
               <div className="mt-10 overflow-hidden rounded-lg border border-neutral-200">
                 <iframe
                   title={`Standort ${verfahren.name}`}
-                  src={`https://maps.google.com/maps?q=${personendaten.koordinaten.lat},${personendaten.koordinaten.lng}&z=15&output=embed`}
+                  src={`https://maps.google.com/maps?q=${koordinaten.lat},${koordinaten.lng}&z=15&output=embed`}
                   width="100%"
                   height="400"
                   loading="lazy"

@@ -1,0 +1,76 @@
+// OAuth2-Client-Credentials-Flow gegen Business Central + generisches Paging
+// ueber @odata.nextLink. Das BC-Token ist laut Entwicklung ca. 60 Minuten
+// gueltig und MUSS zwischengespeichert werden, sonst droht Rate-Limiting.
+// Serverless-Functions sind zustandslos zwischen Cold-Starts, aber dieser
+// Client wird ausschliesslich aus dem naechtlichen Sync-Job (Abschnitt "Weg A"
+// im BC-Konzept) heraus aufgerufen, nicht pro Seitenaufruf - ein simpler
+// Modul-Cache reicht daher aus.
+import { BC_TOKEN_URL, BC_SCOPE, BC_RLP_BASE_URL } from "@/lib/bc-config";
+
+function getEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} ist nicht gesetzt.`);
+  return value;
+}
+
+type TokenCache = { accessToken: string; expiresAt: number };
+let cachedToken: TokenCache | null = null;
+
+async function fetchToken(): Promise<TokenCache> {
+  const clientId = getEnv("BC_RLP_CLIENT_ID");
+  const clientSecret = getEnv("BC_RLP_CLIENT_SECRET");
+
+  const body = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: clientId,
+    client_secret: clientSecret,
+    scope: BC_SCOPE,
+  });
+
+  const res = await fetch(BC_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+
+  if (!res.ok) {
+    throw new Error(`BC-Token-Anfrage fehlgeschlagen: ${res.status} ${await res.text()}`);
+  }
+
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  // 5 Minuten Sicherheitsabstand vor tatsaechlichem Ablauf.
+  const expiresAt = Date.now() + (data.expires_in - 300) * 1000;
+  return { accessToken: data.access_token, expiresAt };
+}
+
+async function getToken(): Promise<string> {
+  if (cachedToken && cachedToken.expiresAt > Date.now()) {
+    return cachedToken.accessToken;
+  }
+  cachedToken = await fetchToken();
+  return cachedToken.accessToken;
+}
+
+type ODataResponse<T> = { value: T[]; "@odata.nextLink"?: string };
+
+// Liest eine BC-Entity vollstaendig aus, inkl. Paging ueber @odata.nextLink
+// (BC deckelt Antworten auf 20.000 Zeilen/Seite).
+export async function fetchBcEntityAllPages<T>(entity: "vtgCompanies" | "vtgBudgetLines"): Promise<T[]> {
+  const token = await getToken();
+  const results: T[] = [];
+  let url: string | undefined = `${BC_RLP_BASE_URL}/${entity}`;
+
+  while (url) {
+    const res: Response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      throw new Error(`BC-Abfrage fehlgeschlagen (${entity}): ${res.status} ${await res.text()}`);
+    }
+    const data = (await res.json()) as ODataResponse<T>;
+    results.push(...data.value);
+    url = data["@odata.nextLink"];
+  }
+
+  return results;
+}

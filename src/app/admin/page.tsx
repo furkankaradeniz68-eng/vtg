@@ -3,7 +3,7 @@ import Link from "next/link";
 import SimpleTable from "@/components/SimpleTable";
 import AbonnentSearchSelect from "@/components/AbonnentSearchSelect";
 import PersonenSearchTable from "@/components/PersonenSearchTable";
-import { listAbonnenten } from "@/lib/credentials";
+import { listBcAbonnenten } from "@/lib/bc-companies";
 import { getAllDownloads, isDownloadActive } from "@/lib/downloads";
 import { getPublicDownloadsByCategory, type PublicDownloadCategory } from "@/lib/public-downloads";
 import { getAllPersonen, PERSON_PAGES } from "@/lib/personen";
@@ -55,7 +55,7 @@ export default async function AdminDashboardPage({
   const activeCategory =
     CATEGORIES.find((c) => c.key === rawCategory)?.key ?? CATEGORIES[0].key;
 
-  const abonnenten = listAbonnenten();
+  const abonnenten = await listBcAbonnenten();
   const downloads = await getAllDownloads();
   const publicEntries = tab === "website" ? await getPublicDownloadsByCategory(activeCategory) : [];
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === activeCategory)!;
