@@ -1,27 +1,14 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import PageHero from "@/components/PageHero";
+import { getSiteContent, parseContentBlocks } from "@/lib/site-content";
 
 export const metadata: Metadata = { title: "Sonstige Aufgaben | VTG Rheinland-Pfalz" };
 
-const aufgaben = [
-  "Fortbildung der Mitglieder",
-  "Beratung und Betreuung der Mitglieder (keine Rechtsberatung)",
-  "Abschluss einer Haftpflichtversicherung bei Mitgliedschaft",
-  "Förderung des Informationsaustauschs der Mitglieder",
-  "Vertretung der Interessen der Mitglieder im politischen Raum",
-  "Stellung und Abrechnung von Aushilfskräften",
-  "Sicherstellung einfacher, einheitlicher und transparenter",
-  "Verwaltungsabläufe",
-  "Vertretung in Ausschüssen",
-];
+export default async function SonstigeAufgabenPage() {
+  const content = await getSiteContent("sonstige-aufgaben");
+  const [aufgaben, nachAnordnung] = parseContentBlocks(content.body);
 
-const nachAnordnung = [
-  "Übernahme von Vorarbeiten, insbesondere agrarstrukturelle Vorplanungen",
-  "Durchführung von Folgemassnahmen beim freiwilligen Landtausch",
-];
-
-export default function SonstigeAufgabenPage() {
   return (
     <>
       <PageHero title="Sonstige Aufgaben" />
@@ -32,23 +19,27 @@ export default function SonstigeAufgabenPage() {
               Neben den Hauptaufgaben im Bereich des Kassenwesen / Buchführung
               und der Bauabwicklung nimmt der Verband folgende Aufgaben wahr:
             </h3>
-            <ul className="list-disc space-y-2 pl-5">
-              {aufgaben.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <div>
-              <p>Nach Anordnung bzw. Zustimmung der Flurbereinigungsbehörde:</p>
-              <ul className="mt-2 list-disc space-y-2 pl-5">
-                {nachAnordnung.map((item) => (
-                  <li key={item}>{item}</li>
+            {aufgaben?.type === "ul" && (
+              <ul className="list-disc space-y-2 pl-5">
+                {aufgaben.lines.map((line, j) => (
+                  <li key={j}>{line}</li>
                 ))}
               </ul>
-            </div>
+            )}
+            {nachAnordnung?.type === "ul" && (
+              <div>
+                <p>Nach Anordnung bzw. Zustimmung der Flurbereinigungsbehörde:</p>
+                <ul className="mt-2 list-disc space-y-2 pl-5">
+                  {nachAnordnung.lines.map((line, j) => (
+                    <li key={j}>{line}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           <div>
             <Image
-              src="/images/ueberblick/Fortbildung.jpg"
+              src={content.image ?? "/images/ueberblick/Fortbildung.jpg"}
               alt=""
               width={450}
               height={300}

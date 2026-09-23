@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import PersonCard from "@/components/PersonCard";
 import { getPersonenByPage, groupPersonenBySection } from "@/lib/personen";
+import { getSiteContent, parseContentBlocks } from "@/lib/site-content";
 
 export const metadata: Metadata = { title: "Vorstand | VTG Rheinland-Pfalz" };
 
@@ -10,6 +11,8 @@ export default async function VorstandPage() {
   const groups = groupPersonenBySection(entries);
   const praesidium = groups.find((g) => g.section === "Präsidium")?.people ?? [];
   const gruppen = groups.filter((g) => g.section !== "Präsidium");
+  const content = await getSiteContent("vorstand");
+  const blocks = parseContentBlocks(content.body);
 
   return (
     <>
@@ -17,18 +20,19 @@ export default async function VorstandPage() {
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
         <h2 className="font-heading text-xl font-bold text-neutral-900">VTG Rheinland-Pfalz</h2>
         <div className="mt-6 space-y-4 text-base leading-relaxed text-neutral-700">
-          <p>
-            Der ehrenamtliche Vorstand wird aus den Reihen der
-            Teilnehmergemeinschaften auf 5 Jahre gewählt. Er besteht aus 9
-            Mitgliedern. Jedes Vorstandsmitglied hat einen persönlichen
-            Stellvertreter. Der Vorstand stellt den Jahresabschluss und den
-            Wirtschaftsplan auf und beschließt insbesondere über
-          </p>
-          <ul className="list-disc space-y-2 pl-5">
-            <li>die Festsetzung der Beitragssätze</li>
-            <li>die Aufnahme neuer Mitglieder</li>
-            <li>die Bestellung und Entlassung des Geschäftsführers und seines Stellvertreters</li>
-          </ul>
+          {blocks.map((block, i) =>
+            block.type === "ul" ? (
+              <ul key={i} className="list-disc space-y-2 pl-5">
+                {block.lines.map((line, j) => (
+                  <li key={j}>{line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p key={i} className="whitespace-pre-line">
+                {block.lines[0]}
+              </p>
+            ),
+          )}
         </div>
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">

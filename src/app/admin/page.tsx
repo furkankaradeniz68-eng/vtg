@@ -7,6 +7,8 @@ import { listBcAbonnenten } from "@/lib/bc-companies";
 import { getAllDownloads, isDownloadActive } from "@/lib/downloads";
 import { getPublicDownloadsByCategory, type PublicDownloadCategory } from "@/lib/public-downloads";
 import { getAllPersonen, PERSON_PAGES } from "@/lib/personen";
+import { getAllSiteContent, SITE_CONTENT_PAGES } from "@/lib/site-content";
+import { SATZUNG_TITEL } from "@/lib/satzung-inhalt";
 
 export const metadata: Metadata = { title: "Admin-Dashboard | VTG Rheinland-Pfalz" };
 
@@ -14,7 +16,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE");
 }
 
-type Tab = "mitglieder" | "website" | "personen";
+type Tab = "mitglieder" | "website" | "personen" | "ueberuns";
 
 const CATEGORIES: { key: PublicDownloadCategory; label: string; publicHref: string }[] = [
   { key: "satzung-vordrucke", label: "Satzung und Vordrucke", publicHref: "/download-satzung-vordrucke" },
@@ -51,7 +53,8 @@ export default async function AdminDashboardPage({
   searchParams: Promise<{ tab?: string; category?: string }>;
 }) {
   const { tab: rawTab, category: rawCategory } = await searchParams;
-  const tab: Tab = rawTab === "website" ? "website" : rawTab === "personen" ? "personen" : "mitglieder";
+  const tab: Tab =
+    rawTab === "website" ? "website" : rawTab === "personen" ? "personen" : rawTab === "ueberuns" ? "ueberuns" : "mitglieder";
   const activeCategory =
     CATEGORIES.find((c) => c.key === rawCategory)?.key ?? CATEGORIES[0].key;
 
@@ -61,6 +64,7 @@ export default async function AdminDashboardPage({
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === activeCategory)!;
   const personen = tab === "personen" ? await getAllPersonen() : [];
   const personPageLabels = Object.fromEntries(PERSON_PAGES.map((p) => [p.slug, p.label]));
+  const siteContent = tab === "ueberuns" ? await getAllSiteContent() : null;
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -74,9 +78,54 @@ export default async function AdminDashboardPage({
         <Link href={tabHref("personen")} className={tabClass(tab === "personen")}>
           Personen
         </Link>
+        <Link href={tabHref("ueberuns")} className={tabClass(tab === "ueberuns")}>
+          Über uns
+        </Link>
       </nav>
 
-      {tab === "personen" ? (
+      {tab === "ueberuns" && siteContent ? (
+        <>
+          <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Texte &amp; Bilder</h2>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Hier lassen sich die Texte (und, wo vorhanden, das Bild) der Unterseiten von „Über uns“ pflegen.
+            Absätze werden durch eine Leerzeile getrennt; Zeilen, die mit „- “ beginnen, werden als Liste
+            dargestellt.
+          </p>
+          <SimpleTable
+            columns={["Seite", "Zuletzt aktualisiert", ""]}
+            rows={SITE_CONTENT_PAGES.map((p) => [
+              p.label,
+              formatDate(siteContent[p.slug].updatedAt),
+              <Link
+                key={p.slug}
+                href={`/admin/seiteninhalte/${p.slug}/bearbeiten`}
+                className="text-sm text-vtg-orange hover:underline"
+              >
+                Bearbeiten
+              </Link>,
+            ])}
+          />
+
+          <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Satzung</h2>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Die Paragraphen-Überschriften und ihre Reihenfolge sind fest im Code hinterlegt (eine Änderung wäre
+            eine Satzungsänderung). Bearbeitbar ist nur der Wortlaut je Paragraph.
+          </p>
+          <SimpleTable
+            columns={["Paragraph", ""]}
+            rows={SATZUNG_TITEL.map((title, i) => [
+              title,
+              <Link
+                key={title}
+                href={`/admin/satzung/${i}/bearbeiten`}
+                className="text-sm text-vtg-orange hover:underline"
+              >
+                Bearbeiten
+              </Link>,
+            ])}
+          />
+        </>
+      ) : tab === "personen" ? (
         <>
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-heading text-lg font-bold text-neutral-900">Personen verwalten</h2>

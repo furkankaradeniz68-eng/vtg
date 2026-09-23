@@ -35,13 +35,23 @@ function DesktopSubmenu({ items }: { items: NavItem[] }) {
     <ul className="absolute left-0 top-full z-40 min-w-64 divide-y divide-neutral-100 border-b-4 border-vtg-yellow bg-white py-1 shadow-[0_0_60px_rgba(0,0,0,0.1)]">
       {items.map((item) => (
         <li key={item.href} className="group/child relative">
-          <SubmenuLink
-            href={item.href}
-            className="flex items-center justify-between px-4 py-2.5 text-sm text-neutral-800 hover:bg-vtg-yellow hover:text-neutral-900"
-          >
-            {item.label}
-            {item.children && <span className="ml-2 text-xs">›</span>}
-          </SubmenuLink>
+          {item.children ? (
+            // Punkte mit eigenem Untermenü (z.B. Organe, Aufgaben) sind bewusst
+            // nicht klickbar — die Zwischen-Übersichtsseite ist überflüssig,
+            // es soll nur das Untermenü aufklappen und direkt zum Unterpunkt
+            // navigiert werden.
+            <span className="flex cursor-default select-none items-center justify-between px-4 py-2.5 text-sm text-neutral-800 hover:bg-vtg-yellow hover:text-neutral-900">
+              {item.label}
+              <span className="ml-2 text-xs">›</span>
+            </span>
+          ) : (
+            <SubmenuLink
+              href={item.href}
+              className="flex items-center justify-between px-4 py-2.5 text-sm text-neutral-800 hover:bg-vtg-yellow hover:text-neutral-900"
+            >
+              {item.label}
+            </SubmenuLink>
+          )}
           {item.children && (
             <ul className="invisible absolute left-full top-0 z-50 min-w-56 divide-y divide-neutral-100 border-b-4 border-vtg-yellow bg-white py-1 opacity-0 shadow-[0_0_60px_rgba(0,0,0,0.1)] transition-opacity duration-150 group-hover/child:visible group-hover/child:opacity-100">
               {item.children.map((child) => (
@@ -125,13 +135,22 @@ function MobileMenu({ items, onNavigate }: { items: NavItem[]; onNavigate: () =>
             <ul className="ml-4 flex flex-col gap-1 border-l border-neutral-200 pb-2 pl-4">
               {item.children.map((child) => (
                 <li key={child.href}>
-                  <MobileMenuLink
-                    href={child.href}
-                    onClick={onNavigate}
-                    className="block py-1.5 text-sm text-neutral-700"
-                  >
-                    {child.label}
-                  </MobileMenuLink>
+                  {child.children ? (
+                    // Wie im Desktop-Menü: Organe/Aufgaben sind nur Gruppierung,
+                    // ihre Zwischenseite ist nicht anwählbar — die Unterpunkte
+                    // stehen direkt darunter.
+                    <span className="block py-1.5 text-sm font-medium text-neutral-800">
+                      {child.label}
+                    </span>
+                  ) : (
+                    <MobileMenuLink
+                      href={child.href}
+                      onClick={onNavigate}
+                      className="block py-1.5 text-sm text-neutral-700"
+                    >
+                      {child.label}
+                    </MobileMenuLink>
+                  )}
                   {child.children && (
                     <ul className="ml-3 flex flex-col gap-1 border-l border-neutral-200 pl-3">
                       {child.children.map((grandchild) => (
