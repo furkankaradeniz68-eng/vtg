@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import VerfahrenSearchTable from "@/components/VerfahrenSearchTable";
 import { requireInternSession } from "@/lib/auth";
@@ -18,14 +17,6 @@ export default async function VerfahrensauswahlPage() {
     <>
       <PageHero title="Verfahrensauswahl" />
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-        {session.role === "admin" && (
-          <Link
-            href="/admin"
-            className="mb-6 inline-block bg-vtg-yellow px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-vtg-orange hover:text-white"
-          >
-            Admin-Dashboard
-          </Link>
-        )}
         {list.length > 0 ? (
           <VerfahrenSearchTable list={list} />
         ) : (

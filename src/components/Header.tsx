@@ -188,10 +188,12 @@ function MobileMenu({ items, onNavigate }: { items: NavItem[]; onNavigate: () =>
 export default function Header({
   loggedIn,
   role,
+  isAdmin = false,
   portalMode = false,
 }: {
   loggedIn: boolean;
   role: MemberRole | null;
+  isAdmin?: boolean;
   portalMode?: boolean;
 }) {
   const router = useRouter();
@@ -270,6 +272,16 @@ export default function Header({
                 )}
               </li>
             ))}
+            {isAdmin && (
+              <li>
+                <Link
+                  href="/admin"
+                  className="bg-vtg-yellow px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-vtg-orange hover:text-white"
+                >
+                  Admin-Dashboard
+                </Link>
+              </li>
+            )}
             {loggedIn && (
               <li>
                 <button
@@ -288,6 +300,15 @@ export default function Header({
       {mobileOpen && (
         <div className="border-t border-neutral-200 px-4 py-2 lg:hidden">
           <MobileMenu items={navItems} onNavigate={() => setMobileOpen(false)} />
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 block bg-vtg-yellow px-3 py-2 text-center text-base font-medium text-neutral-900"
+            >
+              Admin-Dashboard
+            </Link>
+          )}
           {loggedIn && (
             <button
               type="button"
