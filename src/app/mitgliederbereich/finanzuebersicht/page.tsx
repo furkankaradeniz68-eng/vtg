@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import { requireSession } from "@/lib/auth";
-import { findVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
+import { findVerfahren, getVerknuepfteVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
 import {
   gesamtsummeFuerKategorie,
   getFinanzUebersichtKennzahlen,
@@ -40,6 +40,7 @@ export default async function FinanzuebersichtPage({
   const zugriffErlaubt = id ? await istVerfahrenErreichbar(session, id) : false;
   const verfahren = zugriffErlaubt && id ? await findVerfahren(id) : undefined;
   const k = verfahren ? await getFinanzUebersichtKennzahlen(verfahren.nr) : undefined;
+  const verknuepfteVerfahren = verfahren ? await getVerknuepfteVerfahren(verfahren.nr) : [];
   const gesamtsummen: Partial<Record<FinanzKategorieSlug, number>> = verfahren
     ? Object.fromEntries(
         await Promise.all(
@@ -123,6 +124,28 @@ export default async function FinanzuebersichtPage({
                 </li>
               ))}
             </ul>
+
+            {verknuepfteVerfahren.length > 0 && (
+              <>
+                <h3 className="mt-8 mb-2 font-heading text-sm font-medium text-neutral-900">
+                  Weitere verknüpfte Verfahren:
+                </h3>
+                <ul className="flex flex-col gap-2">
+                  {verknuepfteVerfahren.map((v) => (
+                    <li key={v.nr}>
+                      <Link
+                        href={`/mitgliederbereich/finanzuebersicht?id=${v.nr}`}
+                        className="flex overflow-hidden text-sm font-medium transition hover:brightness-95"
+                      >
+                        <span className="flex-1 bg-red-900 px-4 py-2.5 text-white">
+                          {v.nr} {v.name}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </>
         ) : id && !zugriffErlaubt ? (
           <p className="text-base leading-relaxed text-neutral-700">Kein Zugriff auf diese Daten.</p>

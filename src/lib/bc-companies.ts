@@ -8,6 +8,7 @@ import { COMPANIES_PATHNAME } from "@/lib/bc-sync";
 import type { BcCompany } from "@/lib/bc-types";
 import type { SessionRole } from "@/lib/auth";
 import { VERFAHREN_ERGAENZUNG } from "@/lib/verfahren-ergaenzungsdaten";
+import { getVerknuepfteNrs } from "@/lib/verfahren-verknuepfungen";
 import { getLatestFinancialYear } from "@/lib/bc-budget-lines";
 
 export type Verfahren = {
@@ -104,6 +105,17 @@ export async function listBcAbonnenten(): Promise<{ username: string; label: str
     .map((c) => ({ username: c.homepageUsername, label: c.name }));
 }
 
+// Verfahren, die manuell mit `nr` verknuepft sind (z.B. EU-kofinanzierte
+// Teilprojekte). Wird unterhalb der Finanzuebersicht als eigene Liste
+// angezeigt, siehe verfahren-verknuepfungen.ts.
+export async function getVerknuepfteVerfahren(nr: string): Promise<Verfahren[]> {
+  const nrs = getVerknuepfteNrs(nr);
+  if (nrs.length === 0) return [];
+  const companies = await loadCompanies();
+  const gefunden = companies.filter((c) => nrs.includes(c.vtgCompanyNo));
+  return Promise.all(gefunden.map(toVerfahren));
+}
+
 export async function getVerfahrenByKreis(): Promise<Record<string, Verfahren[]>> {
   const companies = await loadCompanies();
   const acc: Record<string, Verfahren[]> = {};
@@ -124,7 +136,11 @@ export async function istVerfahrenErreichbar(
   nr: string,
 ): Promise<boolean> {
   if (session.role === "admin") return true;
-  if (session.role === "abonnent") return nr === session.username;
+  if (session.role === "abonnent") {
+    return nr === session.username || getVerknuepfteNrs(session.username).includes(nr);
+  }
   const byKreis = await getVerfahrenByKreis();
-  return (byKreis[session.username] ?? []).some((v) => v.nr === nr);
+  const eigene = byKreis[session.username] ?? [];
+  if (eigene.some((v) => v.nr === nr)) return true;
+  return eigene.some((v) => getVerknuepfteNrs(v.nr).includes(nr));
 }
