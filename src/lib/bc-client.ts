@@ -34,7 +34,14 @@ async function fetchToken(): Promise<TokenCache> {
   });
 
   if (!res.ok) {
-    throw new Error(`BC-Token-Anfrage fehlgeschlagen: ${res.status} ${await res.text()}`);
+    // Der Antwort-Body darf NIE in eine dem Aufrufer sichtbare Fehlermeldung
+    // wandern: Azure AD spiegelt bei manchen Fehlern (z.B. AADSTS700016) den
+    // von uns gesendeten client_id-Wert wortwoertlich zurueck - landet dort
+    // versehentlich das Secret (z.B. durch Copy-Paste-Fehler in der
+    // Env-Var), waere es sonst im API-Response/Log sichtbar. Nur serverseitig
+    // loggen, dem Aufrufer nur den Status-Code zeigen.
+    console.error(`BC-Token-Anfrage fehlgeschlagen: ${res.status} ${await res.text()}`);
+    throw new Error(`BC-Token-Anfrage fehlgeschlagen: HTTP ${res.status} (Details im Server-Log)`);
   }
 
   const data = (await res.json()) as { access_token: string; expires_in: number };
@@ -65,7 +72,8 @@ export async function fetchBcEntityAllPages<T>(entity: "vtgCompanies" | "vtgBudg
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
-      throw new Error(`BC-Abfrage fehlgeschlagen (${entity}): ${res.status} ${await res.text()}`);
+      console.error(`BC-Abfrage fehlgeschlagen (${entity}): ${res.status} ${await res.text()}`);
+      throw new Error(`BC-Abfrage fehlgeschlagen (${entity}): HTTP ${res.status} (Details im Server-Log)`);
     }
     const data = (await res.json()) as ODataResponse<T>;
     results.push(...data.value);
