@@ -3,14 +3,17 @@
 // EU-kofinanzierten Teilprojekte). Das ist keine BC-Feldspezifikation,
 // sondern eine externe Zuordnungstabelle, die separat nachgereicht wird
 // (siehe WordPress-Referenz: "Weitere verknuepfte Verfahren" unterhalb der
-// Finanzuebersicht-Kacheln). Bis dahin ist die Liste leer.
+// Finanzuebersicht-Kacheln).
 //
 // Format: nr -> Liste der Nrn, deren Finanzuebersicht zusaetzlich sichtbar
 // sein soll. Die Verknuepfung wird automatisch symmetrisch behandelt
 // (getVerknuepfteNrs liefert auch die Rueckrichtung), auch wenn hier nur
 // eine Richtung eingetragen wird.
+//
+// Testdaten aus der WordPress-Referenz (Kroev-Gruppe), bis die vollstaendige
+// externe Tabelle nachgereicht wird.
 export const VERFAHREN_VERKNUEPFUNGEN: Record<string, string[]> = {
-  // "11026": ["17026", "18026", "19026"],
+  "11026": ["17026", "18026", "19026"],
 };
 
 export function getVerknuepfteNrs(nr: string): string[] {
