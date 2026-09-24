@@ -15,6 +15,7 @@
 // daher ein bestmoeglicher Ableitungsversuch aus den Bilanzkonten und sollten
 // mit der Buchhaltung (Umut/BC-Entwicklung) validiert werden, bevor sie
 // produktiv angezeigt werden.
+import { cache } from "react";
 import { get } from "@vercel/blob";
 import { BLOB_TOKEN } from "@/lib/blob-token";
 import { BUDGET_LINES_PATHNAME } from "@/lib/bc-sync";
@@ -51,35 +52,28 @@ function kategorieVonKonto(glAccountNo: string): FinanzKategorieSlug | undefined
   return undefined;
 }
 
-let cachedPromise: Promise<BcBudgetLine[]> | null = null;
-let cachedByCompany: Map<string, BcBudgetLine[]> | null = null;
-
-async function loadBudgetLines(): Promise<BcBudgetLine[]> {
-  if (!cachedPromise) {
-    cachedPromise = (async () => {
-      const result = await get(BUDGET_LINES_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
-      if (!result || result.statusCode !== 200) {
-        throw new Error("BC-Finanzdaten-Snapshot nicht gefunden — wurde der naechtliche Sync schon ausgefuehrt?");
-      }
-      const text = await new Response(result.stream).text();
-      return JSON.parse(text) as BcBudgetLine[];
-    })();
+// React-Request-Memoization statt Modul-Level-Cache: siehe Begruendung in
+// bc-companies.ts (sonst bleiben die Finanzzahlen nach einem erfolgreichen
+// naechtlichen Sync auf warmen Serverless-Instanzen trotzdem eingefroren).
+const loadBudgetLines = cache(async (): Promise<BcBudgetLine[]> => {
+  const result = await get(BUDGET_LINES_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
+  if (!result || result.statusCode !== 200) {
+    throw new Error("BC-Finanzdaten-Snapshot nicht gefunden — wurde der naechtliche Sync schon ausgefuehrt?");
   }
-  return cachedPromise;
-}
+  const text = await new Response(result.stream).text();
+  return JSON.parse(text) as BcBudgetLine[];
+});
 
-async function loadByCompany(): Promise<Map<string, BcBudgetLine[]>> {
-  if (!cachedByCompany) {
-    const all = await loadBudgetLines();
-    cachedByCompany = new Map();
-    for (const row of all) {
-      const list = cachedByCompany.get(row.vtgCompanyNo);
-      if (list) list.push(row);
-      else cachedByCompany.set(row.vtgCompanyNo, [row]);
-    }
+const loadByCompany = cache(async (): Promise<Map<string, BcBudgetLine[]>> => {
+  const all = await loadBudgetLines();
+  const byCompany = new Map<string, BcBudgetLine[]>();
+  for (const row of all) {
+    const list = byCompany.get(row.vtgCompanyNo);
+    if (list) list.push(row);
+    else byCompany.set(row.vtgCompanyNo, [row]);
   }
-  return cachedByCompany;
-}
+  return byCompany;
+});
 
 export async function getLatestFinancialYear(nr: string): Promise<number | undefined> {
   const byCompany = await loadByCompany();

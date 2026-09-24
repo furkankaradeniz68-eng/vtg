@@ -2,6 +2,7 @@
 // dem naechtlichen BC-Snapshot (siehe bc-sync.ts) statt aus einer hart
 // codierten Liste. `aktenzeichen`/`landkreis` fehlen (noch) im BC-Feldmapping
 // und werden bis auf Weiteres aus VERFAHREN_ERGAENZUNG nachgetragen.
+import { cache } from "react";
 import { get } from "@vercel/blob";
 import { BLOB_TOKEN } from "@/lib/blob-token";
 import { COMPANIES_PATHNAME } from "@/lib/bc-sync";
@@ -37,21 +38,19 @@ const DLR_ZIFFER_ZU_DIENSTSITZ: Record<string, string[]> = {
   "9": ["BadKreuznach"],
 };
 
-let cachedPromise: Promise<BcCompany[]> | null = null;
-
-async function loadCompanies(): Promise<BcCompany[]> {
-  if (!cachedPromise) {
-    cachedPromise = (async () => {
-      const result = await get(COMPANIES_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
-      if (!result || result.statusCode !== 200) {
-        throw new Error("BC-Firmendaten-Snapshot nicht gefunden — wurde der naechtliche Sync schon ausgefuehrt?");
-      }
-      const text = await new Response(result.stream).text();
-      return JSON.parse(text) as BcCompany[];
-    })();
+// React-Request-Memoization statt Modul-Level-Cache: eine warme Serverless-
+// Instanz darf den Blob nicht ueber mehrere Requests hinweg cachen, sonst
+// bleiben "Stand" & Co. nach einem erfolgreichen naechtlichen Sync trotzdem
+// eingefroren, bis die Instanz irgendwann neu startet. `cache()` dedupliziert
+// nur innerhalb eines einzelnen Request-Renders.
+const loadCompanies = cache(async (): Promise<BcCompany[]> => {
+  const result = await get(COMPANIES_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
+  if (!result || result.statusCode !== 200) {
+    throw new Error("BC-Firmendaten-Snapshot nicht gefunden — wurde der naechtliche Sync schon ausgefuehrt?");
   }
-  return cachedPromise;
-}
+  const text = await new Response(result.stream).text();
+  return JSON.parse(text) as BcCompany[];
+});
 
 function formatStand(snapshotDateTime: string): string {
   const d = new Date(snapshotDateTime);
