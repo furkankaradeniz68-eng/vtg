@@ -3,7 +3,7 @@ import Link from "next/link";
 import SimpleTable from "@/components/SimpleTable";
 import AbonnentSearchSelect from "@/components/AbonnentSearchSelect";
 import PersonenSearchTable from "@/components/PersonenSearchTable";
-import { listBcAbonnenten } from "@/lib/bc-companies";
+import { listBcAbonnenten, getLastSync, formatDateTime } from "@/lib/bc-companies";
 import { getAllDownloads, isDownloadActive } from "@/lib/downloads";
 import { getPublicDownloadsByCategory, type PublicDownloadCategory } from "@/lib/public-downloads";
 import { getAllPersonen, PERSON_PAGES } from "@/lib/personen";
@@ -60,6 +60,7 @@ export default async function AdminDashboardPage({
 
   const abonnenten = await listBcAbonnenten();
   const downloads = await getAllDownloads();
+  const lastSync = await getLastSync();
   const publicEntries = tab === "website" ? await getPublicDownloadsByCategory(activeCategory) : [];
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === activeCategory)!;
   const personen = tab === "personen" ? await getAllPersonen() : [];
@@ -68,6 +69,11 @@ export default async function AdminDashboardPage({
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      <p className="mb-6 text-sm text-neutral-600">
+        Letzter erfolgreicher BC-Sync:{" "}
+        {lastSync ? `${formatDateTime(lastSync.syncedAt)} Uhr (${lastSync.companies} Mitglieder)` : "noch nicht ausgeführt"}
+      </p>
+
       <nav className="mb-10 flex gap-6 border-b border-neutral-300">
         <Link href={tabHref("mitglieder")} className={tabClass(tab === "mitglieder")}>
           Mitglieder-Downloads
