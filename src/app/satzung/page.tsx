@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import DownloadList from "@/components/DownloadList";
-import { getSatzungParagraphen } from "@/lib/satzung-inhalt";
+import { getSiteContent, parseContentBlocks } from "@/lib/site-content";
 
 export const metadata: Metadata = { title: "Satzung | VTG Rheinland-Pfalz" };
 
+// Paragraphen-Ueberschriften ("§ N Titel") stehen als eigene Absaetze im
+// Freitext und werden hier per Regex erkannt, um sie als <h2> statt als
+// normalen Absatz darzustellen -- so bleibt der Text ein einziges, im Admin
+// frei bearbeitbares Dokument (siehe site-content.ts), ohne dass
+// parseContentBlocks() selbst um ein Heading-Konzept erweitert werden muss.
+const HEADING_PATTERN = /^§\s*\d+/;
+
 export default async function SatzungPage() {
-  const paragraphen = await getSatzungParagraphen();
+  const content = await getSiteContent("satzung");
+  const blocks = parseContentBlocks(content.body);
 
   return (
     <>
@@ -23,17 +31,31 @@ export default async function SatzungPage() {
             ]}
           />
         </div>
-        <div className="space-y-10">
-          {paragraphen.map((p) => (
-            <div key={p.title}>
-              <h2 className="font-heading text-xl font-bold text-neutral-900">{p.title}</h2>
-              <div className="mt-3 space-y-3 text-base leading-relaxed whitespace-pre-line text-neutral-700">
-                {p.body.split(/\n{2,}/).map((paragraph, i) => (
-                  <p key={i}>{paragraph}</p>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="space-y-3">
+          {blocks.map((block, i) => {
+            if (block.type === "ul") {
+              return (
+                <ul key={i} className="list-disc space-y-1 pl-5 text-base leading-relaxed text-neutral-700">
+                  {block.lines.map((line, j) => (
+                    <li key={j}>{line}</li>
+                  ))}
+                </ul>
+              );
+            }
+            const text = block.lines[0];
+            if (HEADING_PATTERN.test(text)) {
+              return (
+                <h2 key={i} className="pt-6 font-heading text-xl font-bold text-neutral-900 first:pt-0">
+                  {text}
+                </h2>
+              );
+            }
+            return (
+              <p key={i} className="text-base leading-relaxed whitespace-pre-line text-neutral-700">
+                {text}
+              </p>
+            );
+          })}
         </div>
       </section>
     </>

@@ -9,11 +9,10 @@ import { getAllDownloads, isDownloadActive } from "@/lib/downloads";
 import { getPublicDownloadsByCategory, type PublicDownloadCategory } from "@/lib/public-downloads";
 import { getAllPersonen, PERSON_PAGES } from "@/lib/personen";
 import { getAllSiteContent, SITE_CONTENT_PAGES } from "@/lib/site-content";
-import { SATZUNG_TITEL } from "@/lib/satzung-inhalt";
 import { getKontenplan } from "@/lib/kontenplan";
 import { getEnergiekostenYears } from "@/lib/energiekostenzuschlag";
 import { getUmlageRows } from "@/lib/umlage";
-import { getStellenausschreibung } from "@/lib/stellenausschreibung";
+import { getStellenausschreibungen } from "@/lib/stellenausschreibung";
 import { getSiteImage } from "@/lib/site-images";
 
 export const metadata: Metadata = { title: "Admin-Dashboard | VTG Rheinland-Pfalz" };
@@ -80,7 +79,7 @@ export default async function AdminDashboardPage({
   const personen = tab === "personen" ? await getAllPersonen() : [];
   const personPageLabels = Object.fromEntries(PERSON_PAGES.map((p) => [p.slug, p.label]));
   const siteContent = tab === "seiteninhalte" ? await getAllSiteContent() : null;
-  const stellenausschreibung = tab === "seiteninhalte" ? await getStellenausschreibung() : null;
+  const stellenausschreibungen = tab === "seiteninhalte" ? await getStellenausschreibungen() : [];
   const heroImage = tab === "seiteninhalte" ? await getSiteImage("hero") : null;
   const kontenplan = tab === "mitgliederbereich" ? await getKontenplan() : null;
   const energiekostenYears = tab === "mitgliederbereich" ? await getEnergiekostenYears() : [];
@@ -109,11 +108,11 @@ export default async function AdminDashboardPage({
           Personen
         </Link>
         <Link href={tabHref("seiteninhalte")} className={tabClass(tab === "seiteninhalte")}>
-          Seiteninhalte
+          Öffentliche Seiteninhalte
         </Link>
       </nav>
 
-      {tab === "seiteninhalte" && siteContent && stellenausschreibung && heroImage ? (
+      {tab === "seiteninhalte" && siteContent && heroImage ? (
         <>
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Texte &amp; Bilder</h2>
           <p className="mb-6 max-w-2xl text-sm text-neutral-600">
@@ -123,7 +122,7 @@ export default async function AdminDashboardPage({
           </p>
           <SimpleTable
             columns={["Seite", "Zuletzt aktualisiert", ""]}
-            rows={SITE_CONTENT_PAGES.map((p) => [
+            rows={SITE_CONTENT_PAGES.filter((p) => p.section !== "mitgliederbereich").map((p) => [
               p.label,
               formatDate(siteContent[p.slug].updatedAt),
               <Link
@@ -136,41 +135,51 @@ export default async function AdminDashboardPage({
             ])}
           />
 
-          <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Satzung</h2>
-          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
-            Die Paragraphen-Überschriften und ihre Reihenfolge sind fest im Code hinterlegt (eine Änderung wäre
-            eine Satzungsänderung). Bearbeitbar ist nur der Wortlaut je Paragraph.
-          </p>
-          <SimpleTable
-            columns={["Paragraph", ""]}
-            rows={SATZUNG_TITEL.map((title, i) => [
-              title,
-              <Link
-                key={title}
-                href={`/admin/satzung/${i}/bearbeiten`}
-                className="text-sm text-vtg-orange hover:underline"
-              >
-                Bearbeiten
-              </Link>,
-            ])}
-          />
-
-          <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Stellenausschreibung</h2>
-          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
-            Titel, Beschreibungstext und optionales PDF der öffentlichen Stellenausschreibungs-Seite.
-          </p>
-          <div className="mb-12 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
-            <div>
-              <p className="text-sm font-medium text-neutral-800">{stellenausschreibung.title}</p>
-              <p className="text-xs text-neutral-500">
-                Zuletzt aktualisiert {formatDate(stellenausschreibung.updatedAt)}
-                {stellenausschreibung.pdfFilename ? ` · PDF: ${stellenausschreibung.pdfFilename}` : " · kein PDF hinterlegt"}
-              </p>
-            </div>
-            <Link href="/admin/stellenausschreibung/bearbeiten" className="text-sm text-vtg-orange hover:underline">
-              Bearbeiten
+          <div className="mt-12 mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-heading text-lg font-bold text-neutral-900">Stellenausschreibungen</h2>
+            <Link href="/admin/stellenausschreibung/neu" className={primaryButtonClass}>
+              + Neue Stelle hinzufügen
             </Link>
           </div>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Titel, Beschreibungstext und optionales PDF je ausgeschriebener Stelle.
+          </p>
+          {stellenausschreibungen.length > 0 ? (
+            <div className="mb-12 flex flex-col gap-3">
+              {stellenausschreibungen.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-neutral-800">{entry.title}</p>
+                    <p className="text-xs text-neutral-500">
+                      Zuletzt aktualisiert {formatDate(entry.updatedAt)}
+                      {entry.pdfFilename ? ` · PDF: ${entry.pdfFilename}` : " · kein PDF hinterlegt"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Link
+                      href={`/admin/stellenausschreibung/${entry.id}/bearbeiten`}
+                      className="text-sm text-vtg-orange hover:underline"
+                    >
+                      Bearbeiten
+                    </Link>
+                    <form action="/api/stellenausschreibung/delete" method="POST">
+                      <input type="hidden" name="id" value={entry.id} />
+                      <button type="submit" className="text-sm text-red-600 hover:underline">
+                        Löschen
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mb-12 text-base leading-relaxed text-neutral-700">
+              Es sind noch keine Stellenausschreibungen hinterlegt.
+            </p>
+          )}
 
           <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Hero-Bild</h2>
           <p className="mb-6 max-w-2xl text-sm text-neutral-600">

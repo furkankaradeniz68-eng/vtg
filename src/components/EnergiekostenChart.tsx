@@ -52,7 +52,13 @@ export default function EnergiekostenChart({ rows }: { rows: { month: number; pe
   }
 
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="h-auto w-full max-w-sm" role="img" aria-label="Zuschlag in Prozent nach Monat">
+    <svg
+      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      preserveAspectRatio="none"
+      className="h-full w-full"
+      role="img"
+      aria-label="Zuschlag in Prozent nach Monat"
+    >
       {Y_TICKS.map((tick) => (
         <g key={tick}>
           <line

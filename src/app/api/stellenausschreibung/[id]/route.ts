@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { get } from "@vercel/blob";
-import { getStellenausschreibung } from "@/lib/stellenausschreibung";
+import { getStellenausschreibungById } from "@/lib/stellenausschreibung";
 import { BLOB_TOKEN } from "@/lib/blob-token";
 
 // Oeffentlich erreichbar (kein requireSession), analog zu /api/kontenplan —
 // der Link erscheint nur auf der oeffentlichen Stellenausschreibung-Seite,
-// wenn ein PDF hinterlegt ist.
-export async function GET() {
-  const entry = await getStellenausschreibung();
+// wenn fuer den jeweiligen Eintrag ein PDF hinterlegt ist.
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const entry = await getStellenausschreibungById(id);
 
-  if (!entry.pdfBlobPathname) {
+  if (!entry || !entry.pdfBlobPathname) {
     return NextResponse.json({ error: "Kein PDF hinterlegt." }, { status: 404 });
   }
 

@@ -26,14 +26,14 @@ export default async function EnergiekostenzuschlagPage() {
               <p className="mb-4 text-base leading-relaxed text-neutral-700">
                 Der Energiekostenzuschlag im Jahr {group.year}.
               </p>
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-                <div className="max-w-md">
-                  <SimpleTable
-                    columns={columns}
-                    rows={group.rows.map((r) => [group.year, r.month, r.price, r.percent])}
-                  />
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:items-stretch">
+                <SimpleTable
+                  columns={columns}
+                  rows={group.rows.map((r) => [group.year, r.month, r.price, r.percent])}
+                />
+                <div className="min-h-[220px]">
+                  <EnergiekostenChart rows={group.rows.map((r) => ({ month: r.month, percent: r.percent }))} />
                 </div>
-                <EnergiekostenChart rows={group.rows.map((r) => ({ month: r.month, percent: r.percent }))} />
               </div>
             </div>
           ))}
