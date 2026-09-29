@@ -82,6 +82,23 @@ export async function getLatestFinancialYear(nr: string): Promise<number | undef
   return Math.max(...rows.map((r) => r.financialYear));
 }
 
+// Fuer Listen-Ansichten (getAllVerfahren/getVerfahrenByKreis): dort wurde
+// bisher pro Verfahren einzeln getLatestFinancialYear() aufgerufen, was ohne
+// Cache bei jedem Aufruf den kompletten Budget-Lines-Blob neu laedt - bei N
+// Verfahren also N volle Blob-Downloads (parallel oder sogar sequenziell),
+// was regelmaessig zu Zeitueberschreitungen fuehrte (siehe Ausfall vom
+// 2026-09-29). Diese Variante laedt den Blob genau einmal und liefert das
+// Ergebnis fuer alle Firmen auf einen Schlag.
+export async function getLatestFinancialYearsByCompany(): Promise<Map<string, number>> {
+  const byCompany = await loadByCompany();
+  const result = new Map<string, number>();
+  for (const [nr, rows] of byCompany) {
+    if (rows.length === 0) continue;
+    result.set(nr, Math.max(...rows.map((r) => r.financialYear)));
+  }
+  return result;
+}
+
 function summeZeile(konto: string, ausgaben: number, plan: number): FinanzZeile {
   return { konto, ausgaben, plan };
 }

@@ -9,7 +9,7 @@ import type { BcCompany } from "@/lib/bc-types";
 import type { SessionRole } from "@/lib/auth";
 import { VERFAHREN_ERGAENZUNG } from "@/lib/verfahren-ergaenzungsdaten";
 import { getVerknuepfteNrs } from "@/lib/verfahren-verknuepfungen";
-import { getLatestFinancialYear } from "@/lib/bc-budget-lines";
+import { getLatestFinancialYear, getLatestFinancialYearsByCompany } from "@/lib/bc-budget-lines";
 
 export type Verfahren = {
   nr: string;
@@ -77,10 +77,14 @@ export async function getLastSync(): Promise<BcSyncResult | null> {
   return loadLastSync();
 }
 
-async function toVerfahren(company: BcCompany): Promise<Verfahren> {
+// `hjOverride` erlaubt Aufrufern, die das Finanzjahr fuer viele Firmen auf
+// einen Schlag per getLatestFinancialYearsByCompany() vorab geladen haben
+// (getAllVerfahren/getVerfahrenByKreis), den sonst pro Firma noetigen
+// einzelnen Blob-Fetch zu vermeiden — siehe N+1-Problem/Ausfall 2026-09-29.
+async function toVerfahren(company: BcCompany, hjOverride?: number): Promise<Verfahren> {
   const ergaenzung = VERFAHREN_ERGAENZUNG[company.vtgCompanyNo];
   const dienstsitzNamen = DLR_ZIFFER_ZU_DIENSTSITZ[company.dlr] ?? [];
-  const hj = (await getLatestFinancialYear(company.vtgCompanyNo)) ?? new Date().getFullYear();
+  const hj = hjOverride ?? (await getLatestFinancialYear(company.vtgCompanyNo)) ?? new Date().getFullYear();
 
   return {
     nr: company.vtgCompanyNo,
@@ -98,8 +102,8 @@ async function toVerfahren(company: BcCompany): Promise<Verfahren> {
 }
 
 export async function getAllVerfahren(): Promise<Verfahren[]> {
-  const companies = await loadCompanies();
-  return Promise.all(companies.map(toVerfahren));
+  const [companies, jahre] = await Promise.all([loadCompanies(), getLatestFinancialYearsByCompany()]);
+  return Promise.all(companies.map((c) => toVerfahren(c, jahre.get(c.vtgCompanyNo))));
 }
 
 export async function findVerfahren(nr: string): Promise<Verfahren | undefined> {
@@ -129,16 +133,16 @@ export async function listBcAbonnenten(): Promise<{ username: string; label: str
 export async function getVerknuepfteVerfahren(nr: string): Promise<Verfahren[]> {
   const nrs = getVerknuepfteNrs(nr);
   if (nrs.length === 0) return [];
-  const companies = await loadCompanies();
+  const [companies, jahre] = await Promise.all([loadCompanies(), getLatestFinancialYearsByCompany()]);
   const gefunden = companies.filter((c) => nrs.includes(c.vtgCompanyNo));
-  return Promise.all(gefunden.map(toVerfahren));
+  return Promise.all(gefunden.map((c) => toVerfahren(c, jahre.get(c.vtgCompanyNo))));
 }
 
 export async function getVerfahrenByKreis(): Promise<Record<string, Verfahren[]>> {
-  const companies = await loadCompanies();
+  const [companies, jahre] = await Promise.all([loadCompanies(), getLatestFinancialYearsByCompany()]);
   const acc: Record<string, Verfahren[]> = {};
   for (const company of companies) {
-    const verfahren = await toVerfahren(company);
+    const verfahren = await toVerfahren(company, jahre.get(company.vtgCompanyNo));
     for (const dienstsitz of DLR_ZIFFER_ZU_DIENSTSITZ[company.dlr] ?? []) {
       (acc[dienstsitz] ??= []).push(verfahren);
     }
