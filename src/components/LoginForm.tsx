@@ -34,7 +34,9 @@ export default function LoginForm() {
         ? "/mitgliederbereich/verfahrensauswahl"
         : data.role === "abonnent"
           ? "/mitgliederbereich/verfahrensdaten"
-          : "/";
+          : data.role === "bauleiter"
+            ? "/bauleiter"
+            : "/";
     router.push(ziel);
     router.refresh();
   }

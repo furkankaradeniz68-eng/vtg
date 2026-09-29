@@ -31,7 +31,18 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getSession();
-  const role: MemberRole | null = session ? (session.role === "abonnent" ? "abonnent" : "intern") : null;
+  // "bauleiter" ist absichtlich weder "abonnent" noch "intern" — das
+  // Bauleiter-Dashboard (/bauleiter) hat ohnehin eigene Chrome (siehe
+  // SiteChrome.tsx) und soll auf keiner oeffentlichen Seite die interne
+  // Header2-Navigationsleiste einblenden, falls doch mal eine oeffentliche
+  // Seite direkt aufgerufen wird.
+  const role: MemberRole | null = !session
+    ? null
+    : session.role === "abonnent"
+      ? "abonnent"
+      : session.role === "dlr" || session.role === "admin"
+        ? "intern"
+        : null;
   const isAdmin = session?.role === "admin";
   const host = (await headers()).get("host");
   const portalMode = isPortalHost(host);

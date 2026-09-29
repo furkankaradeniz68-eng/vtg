@@ -21,7 +21,7 @@ export default function VobVolPage() {
               {
                 title: "Informationen VOB/VOL",
                 description: "Zusammenfassung der Vergabegrundsätze.",
-                href: "/downloads/Informationen_VOB_VOL.pdf",
+                href: "/api/vob-vol/pdf",
               },
             ]}
           />

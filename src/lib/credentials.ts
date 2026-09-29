@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { SessionRole } from "@/lib/auth";
 import { findBcCompanyByHomepageUsername } from "@/lib/bc-companies";
+import { verifyBauleiterCredential } from "@/lib/bauleiter-credentials";
 
 type DlrCredential = { username: string; passwordHash: string; dlrNr: string };
 type AdminCredential = { username: string; passwordHash: string };
@@ -50,6 +51,10 @@ export async function verifyCredentials(username: string, password: string): Pro
   const dlr = creds.dlr.find((d) => d.username === name);
   if (dlr && (await bcrypt.compare(password, dlr.passwordHash))) {
     return { role: "dlr", username: dlr.username };
+  }
+
+  if (await verifyBauleiterCredential(name, password)) {
+    return { role: "bauleiter", username: name };
   }
 
   const bcCompany = await findBcCompanyByHomepageUsername(name);

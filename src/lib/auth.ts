@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "node:crypto";
 
-export type SessionRole = "abonnent" | "dlr" | "admin";
+export type SessionRole = "abonnent" | "dlr" | "admin" | "bauleiter";
 
 export type SessionPayload = {
   username: string;
@@ -61,10 +61,13 @@ export async function requireSession(): Promise<SessionPayload> {
   return session;
 }
 
-// DLR and Admin ("intern") only — Abonnent has no access to these pages.
+// DLR and Admin ("intern") only. Bewusst als Allow-Liste (nicht als Ausschluss
+// von "abonnent") formuliert: mit "bauleiter" gibt es eine dritte
+// Nicht-Admin-Rolle, die hier sonst versehentlich durchrutschen wuerde, obwohl
+// sie auf ihr eigenes /bauleiter-Dashboard beschraenkt sein soll.
 export async function requireInternSession(): Promise<SessionPayload> {
   const session = await requireSession();
-  if (session.role === "abonnent") redirect("/");
+  if (session.role !== "dlr" && session.role !== "admin") redirect("/");
   return session;
 }
 
@@ -72,5 +75,13 @@ export async function requireInternSession(): Promise<SessionPayload> {
 export async function requireAdminSession(): Promise<SessionPayload> {
   const session = await requireSession();
   if (session.role !== "admin") redirect("/");
+  return session;
+}
+
+// Bauleiter only — Zugriff ausschliesslich auf /bauleiter (VOB/VOL-Zeilen-CRUD),
+// keine weiteren Rechte auf der Website.
+export async function requireBauleiterSession(): Promise<SessionPayload> {
+  const session = await requireSession();
+  if (session.role !== "bauleiter") redirect("/");
   return session;
 }
