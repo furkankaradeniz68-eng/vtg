@@ -9,7 +9,7 @@ const Y_MAX = 20;
 const Y_TICKS = [0, 5, 10, 15, 20];
 
 const WIDTH = 320;
-const HEIGHT = 180;
+const HEIGHT = 240;
 const PADDING_LEFT = 28;
 const PADDING_RIGHT = 8;
 const PADDING_TOP = 8;
@@ -54,7 +54,7 @@ export default function EnergiekostenChart({ rows }: { rows: { month: number; pe
   return (
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid meet"
       className="h-full w-full"
       role="img"
       aria-label="Zuschlag in Prozent nach Monat"

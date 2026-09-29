@@ -2,7 +2,6 @@
 // dem naechtlichen BC-Snapshot (siehe bc-sync.ts) statt aus einer hart
 // codierten Liste. `aktenzeichen`/`landkreis` fehlen (noch) im BC-Feldmapping
 // und werden bis auf Weiteres aus VERFAHREN_ERGAENZUNG nachgetragen.
-import { cache } from "react";
 import { get } from "@vercel/blob";
 import { BLOB_TOKEN } from "@/lib/blob-token";
 import { COMPANIES_PATHNAME, LAST_SYNC_PATHNAME, type BcSyncResult } from "@/lib/bc-sync";
@@ -38,19 +37,22 @@ const DLR_ZIFFER_ZU_DIENSTSITZ: Record<string, string[]> = {
   "9": ["BadKreuznach"],
 };
 
-// React-Request-Memoization statt Modul-Level-Cache: eine warme Serverless-
-// Instanz darf den Blob nicht ueber mehrere Requests hinweg cachen, sonst
-// bleiben "Stand" & Co. nach einem erfolgreichen naechtlichen Sync trotzdem
-// eingefroren, bis die Instanz irgendwann neu startet. `cache()` dedupliziert
-// nur innerhalb eines einzelnen Request-Renders.
-const loadCompanies = cache(async (): Promise<BcCompany[]> => {
+// Bewusst ohne Modul-Level-Cache und ohne React `cache()`: `cache()` scoped
+// nur zuverlaessig innerhalb des React-Render-Baums. In Route Handlern (z.B.
+// /api/downloads, /api/finanzbericht/pdf) greift diese Request-Scoping nicht
+// zuverlaessig, wodurch ein einmal haengender/aufgehaengter Promise auf einer
+// warmen Serverless-Instanz ueber mehrere, voellig unabhaengige Requests
+// hinweg wiederverwendet werden kann (siehe Ausfall vom 2026-09-29: beide
+// Routen liefen 300s in den Timeout). Ohne Cache wird der Blob bei jedem
+// Aufruf frisch gelesen — teurer, aber korrekt.
+async function loadCompanies(): Promise<BcCompany[]> {
   const result = await get(COMPANIES_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     throw new Error("BC-Firmendaten-Snapshot nicht gefunden — wurde der naechtliche Sync schon ausgefuehrt?");
   }
   const text = await new Response(result.stream).text();
   return JSON.parse(text) as BcCompany[];
-});
+}
 
 export function formatDateTime(dateTime: string): string {
   const d = new Date(dateTime);
@@ -64,12 +66,12 @@ export function formatDateTime(dateTime: string): string {
 // deren Aufbewahrung (Hobby-Plan) nur ca. 1 Stunde zurueckreicht - damit
 // laesst sich im Admin-Dashboard jederzeit pruefen, ob der naechtliche Sync
 // tatsaechlich gelaufen ist.
-const loadLastSync = cache(async (): Promise<BcSyncResult | null> => {
+async function loadLastSync(): Promise<BcSyncResult | null> {
   const result = await get(LAST_SYNC_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
   if (!result || result.statusCode !== 200) return null;
   const text = await new Response(result.stream).text();
   return JSON.parse(text) as BcSyncResult;
-});
+}
 
 export async function getLastSync(): Promise<BcSyncResult | null> {
   return loadLastSync();

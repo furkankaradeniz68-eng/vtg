@@ -16,7 +16,7 @@ export default async function EnergiekostenzuschlagPage() {
   return (
     <>
       <PageHero title="Energiekostenzuschlag" />
-      <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
         <h2 className="mb-4 font-heading text-2xl font-bold text-neutral-900">
           VTG Rheinland-Pfalz
         </h2>
@@ -26,12 +26,14 @@ export default async function EnergiekostenzuschlagPage() {
               <p className="mb-4 text-base leading-relaxed text-neutral-700">
                 Der Energiekostenzuschlag im Jahr {group.year}.
               </p>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:items-stretch">
-                <SimpleTable
-                  columns={columns}
-                  rows={group.rows.map((r) => [group.year, r.month, r.price, r.percent])}
-                />
-                <div className="min-h-[220px]">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
+                <div className="sm:w-[460px] sm:shrink-0">
+                  <SimpleTable
+                    columns={columns}
+                    rows={group.rows.map((r) => [group.year, r.month, r.price, r.percent])}
+                  />
+                </div>
+                <div className="min-h-[220px] flex-1">
                   <EnergiekostenChart rows={group.rows.map((r) => ({ month: r.month, percent: r.percent }))} />
                 </div>
               </div>

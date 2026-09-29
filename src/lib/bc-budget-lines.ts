@@ -15,7 +15,6 @@
 // daher ein bestmoeglicher Ableitungsversuch aus den Bilanzkonten und sollten
 // mit der Buchhaltung (Umut/BC-Entwicklung) validiert werden, bevor sie
 // produktiv angezeigt werden.
-import { cache } from "react";
 import { get } from "@vercel/blob";
 import { BLOB_TOKEN } from "@/lib/blob-token";
 import { BUDGET_LINES_PATHNAME } from "@/lib/bc-sync";
@@ -52,19 +51,20 @@ function kategorieVonKonto(glAccountNo: string): FinanzKategorieSlug | undefined
   return undefined;
 }
 
-// React-Request-Memoization statt Modul-Level-Cache: siehe Begruendung in
-// bc-companies.ts (sonst bleiben die Finanzzahlen nach einem erfolgreichen
-// naechtlichen Sync auf warmen Serverless-Instanzen trotzdem eingefroren).
-const loadBudgetLines = cache(async (): Promise<BcBudgetLine[]> => {
+// Bewusst ohne Modul-Level-Cache und ohne React `cache()` — siehe Begruendung
+// in bc-companies.ts: `cache()` scoped nicht zuverlaessig in Route Handlern
+// (z.B. /api/finanzbericht/pdf) und kann dort einen einmal haengenden Promise
+// dauerhaft auf einer warmen Serverless-Instanz festhalten.
+async function loadBudgetLines(): Promise<BcBudgetLine[]> {
   const result = await get(BUDGET_LINES_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     throw new Error("BC-Finanzdaten-Snapshot nicht gefunden — wurde der naechtliche Sync schon ausgefuehrt?");
   }
   const text = await new Response(result.stream).text();
   return JSON.parse(text) as BcBudgetLine[];
-});
+}
 
-const loadByCompany = cache(async (): Promise<Map<string, BcBudgetLine[]>> => {
+async function loadByCompany(): Promise<Map<string, BcBudgetLine[]>> {
   const all = await loadBudgetLines();
   const byCompany = new Map<string, BcBudgetLine[]>();
   for (const row of all) {
@@ -73,7 +73,7 @@ const loadByCompany = cache(async (): Promise<Map<string, BcBudgetLine[]>> => {
     else byCompany.set(row.vtgCompanyNo, [row]);
   }
   return byCompany;
-});
+}
 
 export async function getLatestFinancialYear(nr: string): Promise<number | undefined> {
   const byCompany = await loadByCompany();
