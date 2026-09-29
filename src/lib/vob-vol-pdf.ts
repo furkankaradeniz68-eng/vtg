@@ -118,6 +118,20 @@ export async function generateVobVolPdf(rows: VobVolRow[]): Promise<Uint8Array> 
   let height = page.getHeight();
   let y = height - PAGE_MARGIN;
 
+  // Baseline-Versatz vom oberen Rand eines LINE_HEIGHT-Zeilenslots, der das
+  // Schriftbild (Versal-/Oberlaengenhoehe + Unterlaenge) exakt darin
+  // zentriert -- rein pauschales "y = top - CELL_PADDING_Y" liess die
+  // Oberlaenge bei 5pt Schrift leicht ueber die obere Gitterlinie hinausragen
+  // (wirkte wie Ueberlappung). Fontgroessen-abhaengig statt geraten, damit es
+  // fuer beide Fonts/Groessen exakt passt.
+  function baselineOffsetFor(useFont: PDFFont, size: number): number {
+    const ascent = useFont.heightAtSize(size, { descender: false });
+    const descent = useFont.heightAtSize(size, { descender: true }) - ascent;
+    return (LINE_HEIGHT + ascent - descent) / 2;
+  }
+  const bodyBaselineOffset = baselineOffsetFor(font, CELL_FONT_SIZE);
+  const headerBaselineOffset = baselineOffsetFor(boldFont, CELL_FONT_SIZE);
+
   function colX(index: number): number {
     let x = PAGE_MARGIN;
     for (let i = 0; i < index; i++) x += COLUMNS[i].width;
@@ -135,21 +149,33 @@ export async function generateVobVolPdf(rows: VobVolRow[]): Promise<Uint8Array> 
     }
   }
 
+  // Zeichnet linksbuendigen Zelltext, dessen Zeilenblock vertikal in der
+  // (ggf. hoeheren, weil eine andere Zelle in derselben Zeile mehr Zeilen
+  // braucht) Zellenhoehe zentriert ist -- verhindert, dass einzeilige Zellen
+  // oben "kleben" und unten ein grosser Leerraum entsteht.
+  function drawCellLines(
+    lines: string[],
+    x: number,
+    rowTop: number,
+    maxLines: number,
+    useFont: PDFFont,
+    baselineOffset: number,
+    color: ReturnType<typeof rgb>,
+  ) {
+    const linesOffset = (maxLines - lines.length) / 2;
+    lines.forEach((line, li) => {
+      const slotTop = rowTop - CELL_PADDING_Y - (linesOffset + li) * LINE_HEIGHT;
+      page.drawText(line, { x, y: slotTop - baselineOffset, size: CELL_FONT_SIZE, font: useFont, color });
+    });
+  }
+
   function drawTableHeader() {
     const headerLines = Math.max(...COLUMNS.map((c) => c.header.length));
-    const rowHeight = headerLines * LINE_HEIGHT + CELL_PADDING_Y;
+    const rowHeight = headerLines * LINE_HEIGHT + 2 * CELL_PADDING_Y;
     const top = y;
     COLUMNS.forEach((col, i) => {
       const x = colX(i) + CELL_PADDING_X;
-      col.header.forEach((line, li) => {
-        page.drawText(line, {
-          x,
-          y: top - CELL_PADDING_Y - li * LINE_HEIGHT,
-          size: CELL_FONT_SIZE,
-          font: boldFont,
-          color: rgb(0.1, 0.1, 0.1),
-        });
-      });
+      drawCellLines(col.header, x, top, headerLines, boldFont, headerBaselineOffset, rgb(0.1, 0.1, 0.1));
     });
     y = top - rowHeight;
     page.drawLine({
@@ -182,22 +208,14 @@ export async function generateVobVolPdf(rows: VobVolRow[]): Promise<Uint8Array> 
       wrapText(String(row[col.key] ?? ""), col.width - 2 * CELL_PADDING_X, font, CELL_FONT_SIZE),
     );
     const maxLines = Math.max(...cellLines.map((lines) => lines.length));
-    const rowHeight = maxLines * LINE_HEIGHT + CELL_PADDING_Y;
+    const rowHeight = maxLines * LINE_HEIGHT + 2 * CELL_PADDING_Y;
 
     ensureSpace(rowHeight);
 
     const top = y;
     COLUMNS.forEach((col, i) => {
       const x = colX(i) + CELL_PADDING_X;
-      cellLines[i].forEach((line, li) => {
-        page.drawText(line, {
-          x,
-          y: top - CELL_PADDING_Y - li * LINE_HEIGHT,
-          size: CELL_FONT_SIZE,
-          font,
-          color: rgb(0.15, 0.15, 0.15),
-        });
-      });
+      drawCellLines(cellLines[i], x, top, maxLines, font, bodyBaselineOffset, rgb(0.15, 0.15, 0.15));
     });
     y = top - rowHeight;
     page.drawLine({ start: { x: PAGE_MARGIN, y }, end: { x: width - PAGE_MARGIN, y }, thickness: 0.4, color: GRID_COLOR });
