@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { get } from "@vercel/blob";
 import { requireSession } from "@/lib/auth";
+import { istVerfahrenErreichbar } from "@/lib/bc-companies";
 import { BLOB_TOKEN } from "@/lib/blob-token";
 import { getDownloadById, isDownloadActive, recordDownload } from "@/lib/downloads";
 
@@ -13,12 +14,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Datei nicht gefunden." }, { status: 404 });
   }
 
-  const isOwner = session.role === "admin" || session.username === entry.username;
-  if (!isOwner) {
+  // Diese Downloads sind ausschliesslich fuer DLR (des zustaendigen Kreises)
+  // und Admin gedacht, nicht fuer den zugewiesenen Mandanten selbst.
+  const isAdmin = session.role === "admin";
+  const isZustaendigerDlr = session.role === "dlr" && (await istVerfahrenErreichbar(session, entry.username));
+  if (!isAdmin && !isZustaendigerDlr) {
     return NextResponse.json({ error: "Kein Zugriff." }, { status: 403 });
   }
 
-  if (session.role !== "admin" && !isDownloadActive(entry)) {
+  if (!isAdmin && !isDownloadActive(entry)) {
     return NextResponse.json({ error: "Download ist abgelaufen." }, { status: 410 });
   }
 
@@ -28,8 +32,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   // Bestaetigung/Zaehlung nur beim tatsaechlichen Abruf durch den
-  // zugewiesenen Mandanten selbst, nicht wenn ein Admin die Datei ansieht.
-  if (session.username === entry.username) {
+  // zustaendigen DLR, nicht wenn ein Admin die Datei nur einsieht.
+  if (session.role === "dlr") {
     await recordDownload(entry.id);
   }
 

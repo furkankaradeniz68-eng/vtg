@@ -53,14 +53,6 @@ export default async function FinanzberichtSeite({
               <p>HJ: {verfahren.hj}</p>
               <p>Stand: {verfahren.stand}</p>
             </div>
-            <a
-              href={`/api/finanzbericht/pdf?id=${verfahren.nr}&kategorie=${kategorieSlug}&ansicht=${ansicht}`}
-              target="_blank"
-              rel="noreferrer"
-              className="mb-4 inline-block bg-vtg-yellow px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-vtg-orange hover:text-white"
-            >
-              Als PDF herunterladen
-            </a>
             <p className="mb-6 text-sm text-neutral-700">
               {ansicht === "haushaltsjahr" ? (
                 <>

@@ -4,7 +4,6 @@ import PageHero from "@/components/PageHero";
 import { requireSession } from "@/lib/auth";
 import { findVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
 import { getKoordinaten } from "@/lib/verfahren-personendaten";
-import { getDownloadsForUser } from "@/lib/downloads";
 
 export const metadata: Metadata = { title: "Verfahrensdaten | VTG Rheinland-Pfalz" };
 
@@ -20,7 +19,6 @@ export default async function VerfahrensdatenPage({
   const verfahren = zugriffErlaubt && id ? await findVerfahren(id) : undefined;
   const koordinaten = verfahren ? await getKoordinaten(verfahren.nr) : undefined;
   const showBackButton = session.role === "dlr" || session.role === "admin";
-  const downloads = session.role === "abonnent" ? await getDownloadsForUser(session.username) : [];
 
   return (
     <>
@@ -68,27 +66,6 @@ export default async function VerfahrensdatenPage({
             >
               Zur Finanzübersicht
             </Link>
-
-            {downloads.length > 0 && (
-              <div className="mt-10">
-                <h2 className="mb-3 font-heading text-lg font-bold text-neutral-900">Ihre Downloads</h2>
-                <ul className="space-y-2">
-                  {downloads.map((d) => (
-                    <li key={d.id}>
-                      <a
-                        href={`/api/downloads/${d.id}`}
-                        className="inline-block bg-vtg-yellow px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-vtg-orange hover:text-white"
-                      >
-                        {d.filename}
-                      </a>
-                      <span className="ml-3 text-sm text-neutral-500">
-                        gültig bis {new Date(d.expiresAt).toLocaleDateString("de-DE")}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
             {koordinaten && (
               <div className="mt-10 overflow-hidden rounded-lg border border-neutral-200">
