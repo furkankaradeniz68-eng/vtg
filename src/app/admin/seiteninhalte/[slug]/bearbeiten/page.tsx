@@ -25,7 +25,7 @@ export default async function SeiteninhaltBearbeitenPage({
 
   return (
     <section className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <Link href="/admin?tab=ueberuns" className="mb-6 inline-block text-sm text-vtg-orange hover:underline">
+      <Link href="/admin?tab=seiteninhalte" className="mb-6 inline-block text-sm text-vtg-orange hover:underline">
         ← Zurück zur Übersicht
       </Link>
       <h1 className="mb-6 font-heading text-lg font-bold text-neutral-900">

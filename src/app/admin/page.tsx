@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import SimpleTable from "@/components/SimpleTable";
 import AbonnentSearchSelect from "@/components/AbonnentSearchSelect";
 import PersonenSearchTable from "@/components/PersonenSearchTable";
@@ -9,6 +10,11 @@ import { getPublicDownloadsByCategory, type PublicDownloadCategory } from "@/lib
 import { getAllPersonen, PERSON_PAGES } from "@/lib/personen";
 import { getAllSiteContent, SITE_CONTENT_PAGES } from "@/lib/site-content";
 import { SATZUNG_TITEL } from "@/lib/satzung-inhalt";
+import { getKontenplan } from "@/lib/kontenplan";
+import { getEnergiekostenYears } from "@/lib/energiekostenzuschlag";
+import { getUmlageRows } from "@/lib/umlage";
+import { getStellenausschreibung } from "@/lib/stellenausschreibung";
+import { getSiteImage } from "@/lib/site-images";
 
 export const metadata: Metadata = { title: "Admin-Dashboard | VTG Rheinland-Pfalz" };
 
@@ -16,7 +22,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE");
 }
 
-type Tab = "mitglieder" | "website" | "personen" | "ueberuns";
+type Tab = "mitglieder" | "mitgliederbereich" | "website" | "personen" | "seiteninhalte";
 
 const CATEGORIES: { key: PublicDownloadCategory; label: string; publicHref: string }[] = [
   { key: "satzung-vordrucke", label: "Satzung und Vordrucke", publicHref: "/download-satzung-vordrucke" },
@@ -54,7 +60,15 @@ export default async function AdminDashboardPage({
 }) {
   const { tab: rawTab, category: rawCategory } = await searchParams;
   const tab: Tab =
-    rawTab === "website" ? "website" : rawTab === "personen" ? "personen" : rawTab === "ueberuns" ? "ueberuns" : "mitglieder";
+    rawTab === "website"
+      ? "website"
+      : rawTab === "personen"
+        ? "personen"
+        : rawTab === "seiteninhalte"
+          ? "seiteninhalte"
+          : rawTab === "mitgliederbereich"
+            ? "mitgliederbereich"
+            : "mitglieder";
   const activeCategory =
     CATEGORIES.find((c) => c.key === rawCategory)?.key ?? CATEGORIES[0].key;
 
@@ -65,7 +79,14 @@ export default async function AdminDashboardPage({
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === activeCategory)!;
   const personen = tab === "personen" ? await getAllPersonen() : [];
   const personPageLabels = Object.fromEntries(PERSON_PAGES.map((p) => [p.slug, p.label]));
-  const siteContent = tab === "ueberuns" ? await getAllSiteContent() : null;
+  const siteContent = tab === "seiteninhalte" ? await getAllSiteContent() : null;
+  const stellenausschreibung = tab === "seiteninhalte" ? await getStellenausschreibung() : null;
+  const heroImage = tab === "seiteninhalte" ? await getSiteImage("hero") : null;
+  const kontenplan = tab === "mitgliederbereich" ? await getKontenplan() : null;
+  const energiekostenYears = tab === "mitgliederbereich" ? await getEnergiekostenYears() : [];
+  const umlageRows = tab === "mitgliederbereich" ? await getUmlageRows() : [];
+  const zinsMeta = SITE_CONTENT_PAGES.find((p) => p.slug === "zins")!;
+  const umlageTextMeta = SITE_CONTENT_PAGES.find((p) => p.slug === "umlage")!;
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -74,9 +95,12 @@ export default async function AdminDashboardPage({
         {lastSync ? `${formatDateTime(lastSync.syncedAt)} Uhr (${lastSync.companies} Mitglieder)` : "noch nicht ausgeführt"}
       </p>
 
-      <nav className="mb-10 flex gap-6 border-b border-neutral-300">
+      <nav className="mb-10 flex flex-wrap gap-6 border-b border-neutral-300">
         <Link href={tabHref("mitglieder")} className={tabClass(tab === "mitglieder")}>
           Mitglieder-Downloads
+        </Link>
+        <Link href={tabHref("mitgliederbereich")} className={tabClass(tab === "mitgliederbereich")}>
+          Mitgliederbereich
         </Link>
         <Link href={tabHref("website")} className={tabClass(tab === "website")}>
           Website-Downloads
@@ -84,12 +108,12 @@ export default async function AdminDashboardPage({
         <Link href={tabHref("personen")} className={tabClass(tab === "personen")}>
           Personen
         </Link>
-        <Link href={tabHref("ueberuns")} className={tabClass(tab === "ueberuns")}>
-          Über uns
+        <Link href={tabHref("seiteninhalte")} className={tabClass(tab === "seiteninhalte")}>
+          Seiteninhalte
         </Link>
       </nav>
 
-      {tab === "ueberuns" && siteContent ? (
+      {tab === "seiteninhalte" && siteContent && stellenausschreibung && heroImage ? (
         <>
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Texte &amp; Bilder</h2>
           <p className="mb-6 max-w-2xl text-sm text-neutral-600">
@@ -130,6 +154,206 @@ export default async function AdminDashboardPage({
               </Link>,
             ])}
           />
+
+          <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Stellenausschreibung</h2>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Titel, Beschreibungstext und optionales PDF der öffentlichen Stellenausschreibungs-Seite.
+          </p>
+          <div className="mb-12 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
+            <div>
+              <p className="text-sm font-medium text-neutral-800">{stellenausschreibung.title}</p>
+              <p className="text-xs text-neutral-500">
+                Zuletzt aktualisiert {formatDate(stellenausschreibung.updatedAt)}
+                {stellenausschreibung.pdfFilename ? ` · PDF: ${stellenausschreibung.pdfFilename}` : " · kein PDF hinterlegt"}
+              </p>
+            </div>
+            <Link href="/admin/stellenausschreibung/bearbeiten" className="text-sm text-vtg-orange hover:underline">
+              Bearbeiten
+            </Link>
+          </div>
+
+          <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Hero-Bild</h2>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Das Bild, das oben auf jeder Seite im Kopfbereich erscheint.
+          </p>
+          <form
+            action="/api/site-images/update"
+            method="POST"
+            encType="multipart/form-data"
+            className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-4 sm:flex-row sm:items-end"
+          >
+            <input type="hidden" name="key" value="hero" />
+            <Image
+              src={heroImage.url}
+              alt="Aktuelles Hero-Bild"
+              width={160}
+              height={90}
+              className="h-20 w-36 rounded object-cover"
+            />
+            <div className="flex-1">
+              <label htmlFor="image" className="mb-1 block text-sm font-medium text-neutral-800">
+                Neues Bild hochladen
+              </label>
+              <input id="image" name="image" type="file" accept="image/*" required className={inputClass} />
+            </div>
+            <button type="submit" className={primaryButtonClass}>
+              Speichern
+            </button>
+          </form>
+        </>
+      ) : tab === "mitgliederbereich" && kontenplan ? (
+        <>
+          <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Kontenplan-PDF</h2>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Die im Mitgliederbereich verlinkte Kontenplan-Datei.
+          </p>
+          <form
+            action="/api/kontenplan/update"
+            method="POST"
+            encType="multipart/form-data"
+            className="mb-12 flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-4 sm:flex-row sm:items-end"
+          >
+            <div className="flex-1">
+              <p className="mb-1 text-sm font-medium text-neutral-800">Aktuelle Datei</p>
+              <p className="text-xs text-neutral-500">
+                {kontenplan.filename} · zuletzt aktualisiert {formatDate(kontenplan.updatedAt)}
+              </p>
+            </div>
+            <div className="flex-1">
+              <label htmlFor="file" className="mb-1 block text-sm font-medium text-neutral-800">
+                Datei ersetzen
+              </label>
+              <input id="file" name="file" type="file" accept="application/pdf" required className={inputClass} />
+            </div>
+            <button type="submit" className={primaryButtonClass}>
+              Speichern
+            </button>
+          </form>
+
+          <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Energiekostenzuschlag</h2>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Jahresweise Tabellen mit Durchschnittspreis und Zuschlag-Prozentsatz je Monat.
+          </p>
+          <form
+            action="/api/energiekostenzuschlag/add-year"
+            method="POST"
+            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4"
+          >
+            <div>
+              <label htmlFor="year" className="mb-1 block text-sm font-medium text-neutral-800">
+                Neues Jahr
+              </label>
+              <input
+                id="year"
+                name="year"
+                type="number"
+                min={2000}
+                max={2100}
+                defaultValue={new Date().getFullYear() + 1}
+                required
+                className={inputClass}
+              />
+            </div>
+            <button type="submit" className={primaryButtonClass}>
+              Jahr hinzufügen
+            </button>
+          </form>
+          {energiekostenYears.length > 0 ? (
+            <SimpleTable
+              columns={["Jahr", "Zuletzt aktualisiert", "", ""]}
+              rows={energiekostenYears.map((y) => [
+                y.year,
+                formatDate(y.updatedAt),
+                <Link
+                  key={`edit-${y.year}`}
+                  href={`/admin/energiekostenzuschlag/${y.year}/bearbeiten`}
+                  className="text-sm text-vtg-orange hover:underline"
+                >
+                  Bearbeiten
+                </Link>,
+                <form key={`delete-${y.year}`} action="/api/energiekostenzuschlag/delete-year" method="POST">
+                  <input type="hidden" name="year" value={y.year} />
+                  <button type="submit" className="text-sm text-red-600 hover:underline">
+                    Löschen
+                  </button>
+                </form>,
+              ])}
+            />
+          ) : (
+            <p className="text-base leading-relaxed text-neutral-700">Es sind noch keine Jahre angelegt.</p>
+          )}
+
+          <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Zins</h2>
+          <div className="mb-12 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
+            <p className="text-sm text-neutral-600">Begleittext der Zins-Seite im Mitgliederbereich.</p>
+            <Link href={`/admin/seiteninhalte/${zinsMeta.slug}/bearbeiten`} className="text-sm text-vtg-orange hover:underline">
+              Text bearbeiten
+            </Link>
+          </div>
+
+          <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Umlage</h2>
+          <div className="mb-4 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
+            <p className="text-sm text-neutral-600">Begleittext der Umlage-Seite im Mitgliederbereich.</p>
+            <Link
+              href={`/admin/seiteninhalte/${umlageTextMeta.slug}/bearbeiten`}
+              className="text-sm text-vtg-orange hover:underline"
+            >
+              Text bearbeiten
+            </Link>
+          </div>
+
+          <form
+            action="/api/umlage/add"
+            method="POST"
+            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4"
+          >
+            <div>
+              <label htmlFor="umlage-year" className="mb-1 block text-sm font-medium text-neutral-800">
+                Jahr
+              </label>
+              <input id="umlage-year" name="year" type="number" required className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="umlage-percent" className="mb-1 block text-sm font-medium text-neutral-800">
+                Umlage
+              </label>
+              <input id="umlage-percent" name="percent" placeholder="13%" required className={inputClass} />
+            </div>
+            <button type="submit" className={primaryButtonClass}>
+              Zeile hinzufügen
+            </button>
+          </form>
+
+          {umlageRows.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {umlageRows.map((row) => (
+                <div key={row.id} className="flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4">
+                  <form action="/api/umlage/update" method="POST" className="flex flex-wrap items-end gap-3">
+                    <input type="hidden" name="id" value={row.id} />
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-neutral-600">Jahr</label>
+                      <input name="year" type="number" defaultValue={row.year} required className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-neutral-600">Umlage</label>
+                      <input name="percent" defaultValue={row.percent} required className={inputClass} />
+                    </div>
+                    <button type="submit" className={primaryButtonClass}>
+                      Speichern
+                    </button>
+                  </form>
+                  <form action="/api/umlage/delete" method="POST">
+                    <input type="hidden" name="id" value={row.id} />
+                    <button type="submit" className="text-sm text-red-600 hover:underline">
+                      Löschen
+                    </button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-base leading-relaxed text-neutral-700">Es sind noch keine Umlage-Zeilen hinterlegt.</p>
+          )}
         </>
       ) : tab === "personen" ? (
         <>

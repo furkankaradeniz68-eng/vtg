@@ -1,16 +1,18 @@
 import Image from "next/image";
+import { getSiteImage } from "@/lib/site-images";
 
-export default function PageHero({
+export default async function PageHero({
   title,
   subtitle,
 }: {
   title: string;
   subtitle?: string;
 }) {
+  const hero = await getSiteImage("hero");
   return (
     <div className="relative flex h-64 items-center justify-center overflow-hidden sm:h-80">
       <Image
-        src="/images/hero.jpg"
+        src={hero.url}
         alt=""
         fill
         priority

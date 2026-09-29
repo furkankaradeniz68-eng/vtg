@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import { requireSession } from "@/lib/auth";
+import { getSiteContent, parseContentBlocks } from "@/lib/site-content";
 
 export const metadata: Metadata = { title: "Zins | VTG Rheinland-Pfalz" };
 
 export default async function ZinsPage() {
   await requireSession();
+  const content = await getSiteContent("zins");
+  const blocks = parseContentBlocks(content.body);
   return (
     <>
       <PageHero title="Zins" />
@@ -14,26 +17,19 @@ export default async function ZinsPage() {
           Zins
         </h2>
         <div className="space-y-4 text-base leading-relaxed text-neutral-700">
-          <p>
-            Die Gelder aus Zuwendungen und Eigenleistungen aller Mitglieder
-            werden über ein Verbundkonto bewirtschaftet. Dadurch ist
-            sichergestellt, dass die Mitglieder des VTG jederzeit liquide sind
-            und Sollzinszahlungen für Vorfinanzierungen minimiert werden.
-          </p>
-          <p>
-            Die in der Buchführung des VTG für jedes Mitglied eingerichtete
-            Unterkonto dieses Verbundkontos gewährleistet eine
-            mitgliederscharfe Abrechnung aller Ausgaben und Einnahmen.
-          </p>
-          <p>
-            Dieses Unterkonto ist als Kontokorrentkonto eingerichtet. Guthaben
-            und Überziehungen dieser TG-Unterkonten wurden bis 2019 verzinst.
-          </p>
-          <p>
-            Seit dem Jahr 2020 gibt es weder Guthaben- noch Sollzinsen. Etwaig
-            erforderliche Vorfinanzierungen von Zuwendungen oder
-            Eigenleistungen erfolgen somit zinslos.
-          </p>
+          {blocks.map((block, i) =>
+            block.type === "ul" ? (
+              <ul key={i} className="list-disc space-y-2 pl-5">
+                {block.lines.map((line, j) => (
+                  <li key={j}>{line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p key={i} className="whitespace-pre-line">
+                {block.lines[0]}
+              </p>
+            ),
+          )}
         </div>
       </section>
     </>

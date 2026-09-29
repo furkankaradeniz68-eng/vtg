@@ -6,9 +6,15 @@ export type NavItem = {
 
 // Links to static files (PDF/ZIP/...) must use a plain <a>, not next/link's
 // client-side router — the router expects an RSC payload back and throws
-// when a binary file is returned instead, crashing the whole page.
+// when a binary file is returned instead, crashing the whole page. Manche
+// Dateien liegen inzwischen nicht mehr statisch unter /public, sondern werden
+// ueber eine API-Route aus dem Blob-Speicher gestreamt (z.B. das admin-
+// ersetzbare Kontenplan-PDF) — solche Routen tragen keine Dateiendung in der
+// URL und muessen deshalb explizit gelistet werden.
+const FILE_API_ROUTES = ["/api/kontenplan"];
+
 export function isFileHref(href: string): boolean {
-  return /\.[a-z0-9]{2,4}$/i.test(href);
+  return /\.[a-z0-9]{2,4}$/i.test(href) || FILE_API_ROUTES.includes(href);
 }
 
 export const mainNav: NavItem[] = [
@@ -61,7 +67,6 @@ export const mainNav: NavItem[] = [
       { label: "Satzung und Vordrucke", href: "/download-satzung-vordrucke" },
       { label: "Fachtagungen", href: "/fachtagungen" },
       { label: "Sonstiges", href: "/sonstiges" },
-      { label: "TeamViewerQS", href: "/downloads/TeamViewerQS_VTGRLP.zip" },
     ],
   },
   {
@@ -84,7 +89,7 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
     { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
-    { label: "Kontenplan (PDF)", href: "/downloads/Kontenplan_TG.pdf" },
+    { label: "Kontenplan (PDF)", href: "/api/kontenplan" },
   ],
   intern: [
     { label: "Verfahrensauswahl", href: "/mitgliederbereich/verfahrensauswahl" },
@@ -94,7 +99,7 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
     { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
     { label: "TG-Einzeldaten (ZIP)", href: "/downloads/TGEinzeldaten.zip" },
-    { label: "Kontenplan (PDF)", href: "/downloads/Kontenplan_TG.pdf" },
+    { label: "Kontenplan (PDF)", href: "/api/kontenplan" },
   ],
 };
 

@@ -20,7 +20,9 @@ export type SiteContentSlug =
   | "bauabwicklung"
   | "kassen-und-buchfuehrung"
   | "sonstige-aufgaben"
-  | "finanzierung";
+  | "finanzierung"
+  | "zins"
+  | "umlage";
 
 export const SITE_CONTENT_PAGES: { slug: SiteContentSlug; label: string; hasImage: boolean }[] = [
   { slug: "ueberblick", label: "Überblick", hasImage: false },
@@ -31,6 +33,8 @@ export const SITE_CONTENT_PAGES: { slug: SiteContentSlug; label: string; hasImag
   { slug: "kassen-und-buchfuehrung", label: "Kassen- und Buchführung", hasImage: true },
   { slug: "sonstige-aufgaben", label: "Sonstige Aufgaben", hasImage: true },
   { slug: "finanzierung", label: "Finanzierung", hasImage: false },
+  { slug: "zins", label: "Zins (Mitgliederbereich)", hasImage: false },
+  { slug: "umlage", label: "Umlage-Text (Mitgliederbereich)", hasImage: false },
 ];
 
 export function siteContentLabel(slug: string): string {
@@ -156,6 +160,30 @@ Mit der Umlage werden diejenigen Kosten finanziert, die für die Durchführung d
 Die Leistungen der Arbeiter und Maschinen aus dem Eigenregiebetrieb werden über Beiträge abgerechnet, und zwar nach tatsächlicher Inanspruchnahme. Es handelt sich dabei in der Regel um Stunden- oder Tagessätze, die vom Vorstand zu Jahresbeginn festgelegt werden. Bei den Stundensätzen für das Personal sind Reisekosten, Rüstzeiten und Aufwendungen für Dienstfahrzeuge in den Preisen enthalten. Es werden also nur die tatsächlichen Einsatzstunden berechnet.
 
 Auf Umlage und Beiträge kann der Verband satzungsgemäß Vorschüsse erheben.`,
+    updatedAt: SEED_DATE,
+  },
+  zins: {
+    slug: "zins",
+    body: `Die Gelder aus Zuwendungen und Eigenleistungen aller Mitglieder werden über ein Verbundkonto bewirtschaftet. Dadurch ist sichergestellt, dass die Mitglieder des VTG jederzeit liquide sind und Sollzinszahlungen für Vorfinanzierungen minimiert werden.
+
+Die in der Buchführung des VTG für jedes Mitglied eingerichtete Unterkonto dieses Verbundkontos gewährleistet eine mitgliederscharfe Abrechnung aller Ausgaben und Einnahmen.
+
+Dieses Unterkonto ist als Kontokorrentkonto eingerichtet. Guthaben und Überziehungen dieser TG-Unterkonten wurden bis 2019 verzinst.
+
+Seit dem Jahr 2020 gibt es weder Guthaben- noch Sollzinsen. Etwaig erforderliche Vorfinanzierungen von Zuwendungen oder Eigenleistungen erfolgen somit zinslos.`,
+    updatedAt: SEED_DATE,
+  },
+  umlage: {
+    slug: "umlage",
+    body: `Der personelle und sächliche Aufwand für die Geschäftsstelle sowie für die der Geschäftsstelle zugeordneten Bediensteten in den Kulturamtsbezirken ist von den Mitgliedern durch eine jährliche Umlage aufzubringen; dazu gehören die Kosten für Gebäude bzw. Räume, EDV-Ausstattung usw. Mit der Umlage werden somit diejenigen Kosten finanziert, die für die Durchführung der Kassengeschäfte und des Bauwesens erforderlich sind und nicht über Beitragseinnahmen (Stundensätze) des Eigenregiebetriebes abgedeckt sind.
+
+In der Umlage enthalten ist auch die Haftpflichtversicherung für die Teilnehmergemeinschaften. Der Versicherungsschutz beginnt automatisch mit der Mitgliedschaft im VTG.
+
+Die anteilige Höhe der Umlage richtet sich in der Regel nach dem Verhältnis der jährlichen Ausführungskosten des einzelnen Mitglieds zu den Gesamtausführungskosten aller Mitglieder im jeweiligen Jahr.
+
+Sie wird dreimal pro Jahr, in der Regel zum 1. April, 1. August und 1. Dezember, erhoben.
+
+Über die Höhe der Umlage und Ausnahmen beschließt die Mitgliederversammlung.`,
     updatedAt: SEED_DATE,
   },
 };

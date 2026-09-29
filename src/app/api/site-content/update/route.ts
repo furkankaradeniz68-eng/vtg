@@ -49,5 +49,5 @@ export async function POST(request: Request) {
     replaceImage,
   });
 
-  return NextResponse.redirect(new URL("/admin?tab=ueberuns", request.url), 303);
+  return NextResponse.redirect(new URL("/admin?tab=seiteninhalte", request.url), 303);
 }
