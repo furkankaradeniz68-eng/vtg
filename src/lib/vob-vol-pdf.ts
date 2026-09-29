@@ -7,16 +7,28 @@
 // drawTableHeader-Wiederverwendung), aber erweitert um Zeilenumbruch pro
 // Zelle: bei 18 Spalten auf einer A4-Querseite brauchen Freitext-Spalten
 // (Teilnehmergemeinschaft, Art/Umfang der Leistung, Auftragnehmer) mehr als
-// eine Zeile.
+// eine Zeile. wrapText() bricht dabei auch einzelne Woerter/Bindestrich-
+// Ketten, die selbst breiter als die Spalte sind, hart um -- sonst liefe der
+// Text in die Nachbarspalte und alles wirkt "verschoben"/ueberlappend.
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import type { VobVolRow } from "@/lib/vob-vol";
 
 const PAGE_MARGIN = 40;
 const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
-const CELL_FONT_SIZE = 7;
-const LINE_HEIGHT = 8;
-const CELL_PADDING_X = 3;
-const CELL_PADDING_Y = 4;
+const CELL_FONT_SIZE = 5;
+const LINE_HEIGHT = 6;
+const CELL_PADDING_X = 2;
+const CELL_PADDING_Y = 3;
+const GRID_COLOR = rgb(0.75, 0.75, 0.75);
+
+// Logo+Schriftzug als eine flache Grafik (siehe Header.tsx/Footer.tsx),
+// dieselbe Datei wie auf der oeffentlichen Website. fs.readFileSync statt
+// next/image, da hier Rohbytes fuer pdf-lib's embedPng() gebraucht werden.
+// public/ wird sonst nur statisch ausgeliefert -- siehe
+// outputFileTracingIncludes in next.config.ts, sonst ENOENT auf Vercel.
+const LOGO_PATH = path.join(process.cwd(), "public", "images", "logo", "vtg-schrift.png");
 
 type Column = {
   key: keyof VobVolRow;
@@ -45,32 +57,61 @@ const COLUMNS: Column[] = [
   { key: "infoZuschlag", header: ["Info", "Zuschlag"], width: 26 },
 ];
 
+// Bricht zunaechst wortweise um (wie zuvor), zerlegt aber ein einzelnes Wort
+// (bzw. eine Bindestrich-Kette ohne Leerzeichen), das schon fuer sich breiter
+// als die Spalte ist, zusaetzlich zeichenweise -- verhindert horizontalen
+// Ueberlauf in die naechste Spalte.
 function wrapText(text: string, maxWidth: number, font: PDFFont, size: number): string[] {
   if (!text) return [""];
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length === 0) return [""];
 
-  const lines: string[] = [];
-  let current = words[0];
+  function breakLongWord(word: string): string[] {
+    const parts: string[] = [];
+    let chunk = "";
+    for (const ch of word) {
+      const candidate = chunk + ch;
+      if (chunk && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+        parts.push(chunk);
+        chunk = ch;
+      } else {
+        chunk = candidate;
+      }
+    }
+    if (chunk) parts.push(chunk);
+    return parts;
+  }
 
-  for (let i = 1; i < words.length; i++) {
-    const word = words[i];
-    const candidate = `${current} ${word}`;
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
     if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
       current = candidate;
-    } else {
+      continue;
+    }
+    if (current) {
       lines.push(current);
+      current = "";
+    }
+    if (font.widthOfTextAtSize(word, size) <= maxWidth) {
       current = word;
+    } else {
+      const brokenParts = breakLongWord(word);
+      for (let i = 0; i < brokenParts.length - 1; i++) lines.push(brokenParts[i]);
+      current = brokenParts[brokenParts.length - 1] ?? "";
     }
   }
-  lines.push(current);
-  return lines;
+  if (current) lines.push(current);
+  return lines.length ? lines : [""];
 }
 
 export async function generateVobVolPdf(rows: VobVolRow[]): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+  const logoImage = await doc.embedPng(readFileSync(LOGO_PATH));
 
   let page = doc.addPage(A4_LANDSCAPE);
   let width = page.getWidth();
@@ -81,6 +122,17 @@ export async function generateVobVolPdf(rows: VobVolRow[]): Promise<Uint8Array> 
     let x = PAGE_MARGIN;
     for (let i = 0; i < index; i++) x += COLUMNS[i].width;
     return x;
+  }
+
+  // Duenne vertikale Trennlinien zwischen allen Spalten (inkl. aeusserem
+  // Rand links/rechts) fuer den Bereich [bottom, top] -- ergibt zusammen mit
+  // den horizontalen Zeilenlinien ein durchgehendes Tabellenraster wie im
+  // Original-PDF, statt nur einzelner Zeilenlinien.
+  function drawColumnGrid(top: number, bottom: number) {
+    for (let i = 0; i <= COLUMNS.length; i++) {
+      const x = colX(i);
+      page.drawLine({ start: { x, y: top }, end: { x, y: bottom }, thickness: 0.4, color: GRID_COLOR });
+    }
   }
 
   function drawTableHeader() {
@@ -101,12 +153,18 @@ export async function generateVobVolPdf(rows: VobVolRow[]): Promise<Uint8Array> 
     });
     y = top - rowHeight;
     page.drawLine({
+      start: { x: PAGE_MARGIN, y: top },
+      end: { x: width - PAGE_MARGIN, y: top },
+      thickness: 0.75,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    page.drawLine({
       start: { x: PAGE_MARGIN, y },
       end: { x: width - PAGE_MARGIN, y },
       thickness: 0.75,
       color: rgb(0.3, 0.3, 0.3),
     });
-    y -= 4;
+    drawColumnGrid(top, y);
   }
 
   function ensureSpace(rowHeight: number) {
@@ -142,24 +200,54 @@ export async function generateVobVolPdf(rows: VobVolRow[]): Promise<Uint8Array> 
       });
     });
     y = top - rowHeight;
-    page.drawLine({
-      start: { x: PAGE_MARGIN, y },
-      end: { x: width - PAGE_MARGIN, y },
-      thickness: 0.4,
-      color: rgb(0.8, 0.8, 0.8),
-    });
+    page.drawLine({ start: { x: PAGE_MARGIN, y }, end: { x: width - PAGE_MARGIN, y }, thickness: 0.4, color: GRID_COLOR });
+    drawColumnGrid(top, y);
   }
 
-  page.drawText("VOB/VOL-Vergaben", { x: PAGE_MARGIN, y, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.1) });
+  // Briefkopf (nur auf Seite 1, wie im Original): Logo+Schriftzug links,
+  // Dokumenttitel rechts daneben vertikal zentriert, Stand oben rechts.
+  const logoWidth = 200;
+  const logoHeight = logoWidth / (logoImage.width / logoImage.height);
+  const logoTop = y;
+  page.drawImage(logoImage, { x: PAGE_MARGIN, y: logoTop - logoHeight, width: logoWidth, height: logoHeight });
+
+  page.drawText("VOB/VOL-Vergaben", {
+    x: PAGE_MARGIN + logoWidth + 24,
+    y: logoTop - logoHeight / 2 - 2,
+    size: 16,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
   const stand = `Stand: ${new Date().toLocaleDateString("de-DE")}`;
   page.drawText(stand, {
     x: width - PAGE_MARGIN - font.widthOfTextAtSize(stand, 9),
-    y,
+    y: logoTop - 10,
     size: 9,
     font,
     color: rgb(0.3, 0.3, 0.3),
   });
-  y -= 20;
+
+  // Rechtsgrundlagen-/Kontakt-Hinweistext aus dem Original-PDF (nur Seite 1,
+  // direkt unter dem Briefkopf, vor der Tabelle) -- ging bei der ersten
+  // Layout-Ueberarbeitung verloren und wird hier wieder ergaenzt.
+  const introFontSize = 9;
+  const introLineHeight = 12;
+  const introMaxWidth = width - 2 * PAGE_MARGIN;
+  const introParagraphs = [
+    "Informationen über beabsichtigte beschränkte Ausschreibungen gemäß § 19 Abs. 5 VOB/A und Dokumentation vergebenener Aufträge gemäß § 20 Abs. 3 VOB/A sowie § 19 Abs. 2 VOL/L",
+    "Die Kontaktinformationen zu der jeweiligen VTG-Außenstelle finden Sie bei www.vtg-rlp.de unter Kontakte",
+  ];
+
+  let introY = logoTop - logoHeight - 16;
+  for (const paragraph of introParagraphs) {
+    for (const line of wrapText(paragraph, introMaxWidth, font, introFontSize)) {
+      page.drawText(line, { x: PAGE_MARGIN, y: introY, size: introFontSize, font, color: rgb(0.2, 0.2, 0.2) });
+      introY -= introLineHeight;
+    }
+  }
+
+  y = introY - 8;
 
   drawTableHeader();
 
