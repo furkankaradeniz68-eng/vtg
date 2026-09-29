@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth";
 import { findVerfahren, getVerknuepfteVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
 import {
   gesamtsummeFuerKategorie,
+  getBudgetLinesForCompany,
   getFinanzUebersichtKennzahlen,
   type FinanzKategorieSlug,
 } from "@/lib/bc-budget-lines";
@@ -39,13 +40,20 @@ export default async function FinanzuebersichtPage({
   const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
   const zugriffErlaubt = id ? await istVerfahrenErreichbar(session, id) : false;
   const verfahren = zugriffErlaubt && id ? await findVerfahren(id) : undefined;
-  const k = verfahren ? await getFinanzUebersichtKennzahlen(verfahren.nr) : undefined;
+  // Budget-Lines-Zeilen fuer dieses Verfahren einmal laden und an Kennzahlen
+  // + alle drei Kategorie-Summen durchreichen, statt dass jede der vier
+  // Funktionen den kompletten Blob separat neu abruft (siehe N+1-Ausfall
+  // 2026-09-29 — diese Seite war mit bis zu ~14 redundanten Blob-Fetches pro
+  // Aufruf der bisher schlimmste Fall).
+  const rows = verfahren ? await getBudgetLinesForCompany(verfahren.nr) : [];
+  const k = verfahren ? await getFinanzUebersichtKennzahlen(verfahren.nr, rows) : undefined;
   const verknuepfteVerfahren = verfahren ? await getVerknuepfteVerfahren(verfahren.nr) : [];
   const gesamtsummen: Partial<Record<FinanzKategorieSlug, number>> = verfahren
     ? Object.fromEntries(
         await Promise.all(
           berichte.map(
-            async (b) => [b.kategorieSlug, await gesamtsummeFuerKategorie(verfahren.nr, b.kategorieSlug)] as const,
+            async (b) =>
+              [b.kategorieSlug, await gesamtsummeFuerKategorie(verfahren.nr, b.kategorieSlug, rows)] as const,
           ),
         ),
       )

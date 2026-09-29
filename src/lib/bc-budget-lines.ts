@@ -103,14 +103,37 @@ function summeZeile(konto: string, ausgaben: number, plan: number): FinanzZeile 
   return { konto, ausgaben, plan };
 }
 
+function jahrAusRows(rows: BcBudgetLine[]): number | undefined {
+  if (rows.length === 0) return undefined;
+  return Math.max(...rows.map((r) => r.financialYear));
+}
+
+// Fuer Detail-Seiten (Finanzuebersicht/Finanzbericht), die fuer dasselbe
+// Verfahren mehrere Kategorien/Kennzahlen auf einmal brauchen: laedt den
+// Budget-Lines-Blob genau einmal und liefert nur die Zeilen der gewuenschten
+// Firma. Aufrufer koennen das Ergebnis an findeFinanzKategorie/
+// getFinanzUebersichtKennzahlen als `vorgeladeneRows` durchreichen, statt
+// dass jede dieser Funktionen den kompletten Blob selbst erneut abruft
+// (siehe N+1-Ausfall vom 2026-09-29 — dasselbe Muster wie in bc-companies.ts,
+// nur auf Einzelverfahren-Detailseiten statt Listenansichten).
+export async function getBudgetLinesForCompany(nr: string): Promise<BcBudgetLine[]> {
+  const byCompany = await loadByCompany();
+  return byCompany.get(nr) ?? [];
+}
+
 export async function findeFinanzKategorie(
   nr: string,
   slug: FinanzKategorieSlug,
   ansicht: FinanzAnsicht,
+  vorgeladeneRows?: BcBudgetLine[],
 ): Promise<FinanzKategorie> {
-  const byCompany = await loadByCompany();
-  const rows = (byCompany.get(nr) ?? []).filter((r) => kategorieVonKonto(r.glAccountNo) === slug);
-  const jahr = await getLatestFinancialYear(nr);
+  const alleRows = vorgeladeneRows ?? (await getBudgetLinesForCompany(nr));
+  const rows = alleRows.filter((r) => kategorieVonKonto(r.glAccountNo) === slug);
+  // Jahr wird aus denselben, bereits geladenen Zeilen abgeleitet statt ueber
+  // einen zweiten getLatestFinancialYear()-Aufruf (der intern wieder den
+  // kompletten Blob neu laden wuerde — vorheriger Bug, verdoppelte jeden
+  // Aufruf dieser Funktion unnoetig).
+  const jahr = jahrAusRows(alleRows);
   const aktuelleRows = jahr ? rows.filter((r) => r.financialYear === jahr) : rows;
 
   // Laufzeit: kumulierter Saldo (balance) vs. Laufzeitbudget (termBudget).
@@ -155,10 +178,14 @@ export async function findeFinanzKategorie(
   return { slug, titel: info.titel, suffix: info.suffix, zeilen };
 }
 
-export async function gesamtsummeFuerKategorie(nr: string, slug: FinanzKategorieSlug): Promise<number> {
+export async function gesamtsummeFuerKategorie(
+  nr: string,
+  slug: FinanzKategorieSlug,
+  vorgeladeneRows?: BcBudgetLine[],
+): Promise<number> {
   // Fuer die Finanzuebersicht-Kachelsummen wird, wie im Original, die
   // kumulierte Laufzeit-Ansicht herangezogen.
-  const kategorie = await findeFinanzKategorie(nr, slug, "laufzeit");
+  const kategorie = await findeFinanzKategorie(nr, slug, "laufzeit", vorgeladeneRows);
   return kategorie.zeilen.find((z) => z.typ === "gesamt")?.ausgaben ?? 0;
 }
 
@@ -171,10 +198,12 @@ export type FinanzUebersichtKennzahlen = {
 
 const BILANZKONTEN = ["0730", "0800", "1000", "1200", "1360", "1400", "1500", "1590", "1600", "1800", "1890"];
 
-export async function getFinanzUebersichtKennzahlen(nr: string): Promise<FinanzUebersichtKennzahlen> {
-  const byCompany = await loadByCompany();
-  const rows = byCompany.get(nr) ?? [];
-  const jahr = await getLatestFinancialYear(nr);
+export async function getFinanzUebersichtKennzahlen(
+  nr: string,
+  vorgeladeneRows?: BcBudgetLine[],
+): Promise<FinanzUebersichtKennzahlen> {
+  const rows = vorgeladeneRows ?? (await getBudgetLinesForCompany(nr));
+  const jahr = jahrAusRows(rows);
   const aktuelleRows = jahr ? rows.filter((r) => r.financialYear === jahr) : rows;
 
   const saldoVon = (konto: string) =>

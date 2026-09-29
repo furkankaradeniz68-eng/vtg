@@ -150,6 +150,24 @@ export async function getVerfahrenByKreis(): Promise<Record<string, Verfahren[]>
   return acc;
 }
 
+// Nur die Produktnummern je Dienstsitz, ohne die vollen Verfahren-Objekte
+// (also ohne den zusaetzlichen Budget-Lines-Blob-Fetch, den getVerfahrenByKreis
+// fuer das Finanzjahr jeder Firma braucht). istVerfahrenErreichbar() wird auf
+// praktisch jeder Mitgliederbereich-Seite fuer die Zugriffspruefung
+// aufgerufen und interessiert sich nur fuer die Firmen-Zuordnung, nicht fuers
+// Finanzjahr — der volle getVerfahrenByKreis()-Aufruf hier war ein weiterer
+// unnoetiger Blob-Fetch pro Seitenaufruf (siehe N+1-Ausfall 2026-09-29).
+async function getCompanyNrsByKreis(): Promise<Record<string, string[]>> {
+  const companies = await loadCompanies();
+  const acc: Record<string, string[]> = {};
+  for (const company of companies) {
+    for (const dienstsitz of DLR_ZIFFER_ZU_DIENSTSITZ[company.dlr] ?? []) {
+      (acc[dienstsitz] ??= []).push(company.vtgCompanyNo);
+    }
+  }
+  return acc;
+}
+
 // Zugriffsregeln (analog zur urspruenglichen WP-Rollenlogik):
 // Abonnent sieht nur die eigene Produktnummer (username == produkt_nr),
 // DLR sieht nur Verfahren seines Dienstsitzes, Admin hat vollen Zugriff.
@@ -161,8 +179,8 @@ export async function istVerfahrenErreichbar(
   if (session.role === "abonnent") {
     return nr === session.username || getVerknuepfteNrs(session.username).includes(nr);
   }
-  const byKreis = await getVerfahrenByKreis();
-  const eigene = byKreis[session.username] ?? [];
-  if (eigene.some((v) => v.nr === nr)) return true;
-  return eigene.some((v) => getVerknuepfteNrs(v.nr).includes(nr));
+  const nrsByKreis = await getCompanyNrsByKreis();
+  const eigeneNrs = nrsByKreis[session.username] ?? [];
+  if (eigeneNrs.includes(nr)) return true;
+  return eigeneNrs.some((eigeneNr) => getVerknuepfteNrs(eigeneNr).includes(nr));
 }
