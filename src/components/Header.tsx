@@ -212,16 +212,13 @@ export default function Header({
     router.refresh();
   }
 
-  // Im eingeloggten Zustand (Mitgliederbereich) hebt sich der Header per
-  // dezentem CI-Gelb-Hintergrund optisch vom weissen Header der oeffentlichen
-  // Website ab, damit sofort erkennbar ist, dass man sich im internen Bereich
-  // befindet.
+  // Nur die zweite Navigationszeile (Header2: Verfahrensauswahl bis
+  // Bewilligungs-/Abrufuebersicht) hebt sich im eingeloggten Zustand per
+  // dezentem CI-Gelb-Hintergrund ab. Logo-Zeile und Hauptnavigation (Über
+  // uns, Mitglieder, Kontakt, ..., Logout) bleiben wie auf der oeffentlichen
+  // Website weiss, damit nicht der ganze Header eingefaerbt wirkt.
   return (
-    <header
-      className={`sticky top-0 z-50 border-b-[1.5px] border-vtg-yellow ${
-        loggedIn ? "bg-vtg-yellow/15" : "bg-white"
-      }`}
-    >
+    <header className="sticky top-0 z-50 border-b-[1.5px] border-vtg-yellow bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 py-2">
           <Link href="/" className="shrink-0" aria-label="VTG Rheinland-Pfalz Startseite">
@@ -247,9 +244,17 @@ export default function Header({
             <span className="h-0.5 w-6 bg-neutral-900" />
           </button>
         </div>
+      </div>
 
-        {role && <Header2 role={role} />}
+      {role && (
+        <div className="bg-vtg-yellow/15">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <Header2 role={role} />
+          </div>
+        </div>
+      )}
 
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <nav className="hidden lg:block">
           <ul className="flex items-center gap-8">
             {navItems.map((item) => (
