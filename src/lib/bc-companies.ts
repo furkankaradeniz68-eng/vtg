@@ -3,7 +3,7 @@
 // codierten Liste. `aktenzeichen`/`landkreis` fehlen (noch) im BC-Feldmapping
 // und werden bis auf Weiteres aus VERFAHREN_ERGAENZUNG nachgetragen.
 import { get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 import { COMPANIES_PATHNAME, LAST_SYNC_PATHNAME, type BcSyncResult } from "@/lib/bc-sync";
 import type { BcCompany } from "@/lib/bc-types";
 import type { SessionRole } from "@/lib/auth";
@@ -46,7 +46,7 @@ const DLR_ZIFFER_ZU_DIENSTSITZ: Record<string, string[]> = {
 // Routen liefen 300s in den Timeout). Ohne Cache wird der Blob bei jedem
 // Aufruf frisch gelesen — teurer, aber korrekt.
 async function loadCompanies(): Promise<BcCompany[]> {
-  const result = await get(COMPANIES_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
+  const result = await get(COMPANIES_PATHNAME, { access: "private", token: BLOB_TOKEN, abortSignal: blobAbortSignal() }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     throw new Error("BC-Firmendaten-Snapshot nicht gefunden — wurde der naechtliche Sync schon ausgefuehrt?");
   }
@@ -67,7 +67,7 @@ export function formatDateTime(dateTime: string): string {
 // laesst sich im Admin-Dashboard jederzeit pruefen, ob der naechtliche Sync
 // tatsaechlich gelaufen ist.
 async function loadLastSync(): Promise<BcSyncResult | null> {
-  const result = await get(LAST_SYNC_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
+  const result = await get(LAST_SYNC_PATHNAME, { access: "private", token: BLOB_TOKEN, abortSignal: blobAbortSignal() }).catch(() => null);
   if (!result || result.statusCode !== 200) return null;
   const text = await new Response(result.stream).text();
   return JSON.parse(text) as BcSyncResult;

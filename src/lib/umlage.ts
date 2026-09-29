@@ -3,7 +3,7 @@
 // nach dem gleichen Blob-JSON-Muster wie public-downloads.ts. Der Begleittext
 // der Seite liegt separat in site-content.ts (Slug "umlage").
 import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const META_PATHNAME = "umlage-meta.json";
 
@@ -30,9 +30,12 @@ const DEFAULT_ROWS: UmlageRow[] = [
 // Keine Modul-weite Zwischenspeicherung, siehe public-downloads.ts: diese
 // Metadaten werden von der Anwendung selbst laufend veraendert.
 async function loadUmlageRows(): Promise<UmlageRow[]> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
-    () => null,
-  );
+  const result = await get(META_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     await saveUmlageRows(DEFAULT_ROWS);
     return DEFAULT_ROWS;

@@ -8,7 +8,7 @@
 // wird ueber eine eigene, per-id parametrisierte API-Route authentifiziert
 // gestreamt (siehe /api/stellenausschreibung/[id]/route.ts).
 import { put, del, get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const META_PATHNAME = "stellenausschreibung-meta.json";
 
@@ -27,9 +27,12 @@ export type StellenausschreibungEntry = {
 const DEFAULT_ENTRIES: StellenausschreibungEntry[] = [];
 
 async function loadEntries(): Promise<StellenausschreibungEntry[]> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
-    () => null,
-  );
+  const result = await get(META_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
   if (!result || result.statusCode !== 200) return DEFAULT_ENTRIES;
   const text = await new Response(result.stream).text();
   return JSON.parse(text) as StellenausschreibungEntry[];

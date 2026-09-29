@@ -13,7 +13,7 @@
 // werden koennen. Ueberschriften ("§ N Titel") stehen als eigene Absaetze im
 // Text und werden erst beim Rendern (satzung/page.tsx) per Regex erkannt.
 import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const META_PATHNAME = "site-content-meta.json";
 
@@ -453,9 +453,12 @@ Sie wird dreimal pro Jahr, in der Regel zum 1. April, 1. August und 1. Dezember,
 };
 
 async function loadSiteContent(): Promise<Record<SiteContentSlug, SiteContentEntry>> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
-    () => null,
-  );
+  const result = await get(META_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     await saveSiteContent(DEFAULT_ENTRIES);
     return DEFAULT_ENTRIES;

@@ -4,7 +4,7 @@
 // ueber eine eigene API-Route authentifiziert gestreamt (siehe
 // /api/kontenplan/route.ts), damit keine rohe Blob-URL noetig ist.
 import { put, del, get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const META_PATHNAME = "kontenplan-meta.json";
 // Legacy-Startzustand: verweist auf die urspruengliche statische Datei, bis
@@ -23,9 +23,12 @@ const DEFAULT_ENTRY: KontenplanEntry = {
 };
 
 async function loadKontenplan(): Promise<KontenplanEntry> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
-    () => null,
-  );
+  const result = await get(META_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
   if (!result || result.statusCode !== 200) return DEFAULT_ENTRY;
   const text = await new Response(result.stream).text();
   return JSON.parse(text) as KontenplanEntry;

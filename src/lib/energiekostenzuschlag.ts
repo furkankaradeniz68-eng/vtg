@@ -6,7 +6,7 @@
 // urspruenglichen Datensatz, unvollstaendige Jahre — z.B. 2022 ab Juni --
 // moeglich, ohne 12 Platzhalterzeilen anlegen zu muessen).
 import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const META_PATHNAME = "energiekostenzuschlag-meta.json";
 
@@ -87,9 +87,12 @@ const DEFAULT_YEARS: EnergiekostenYear[] = [
 
 // Keine Modul-weite Zwischenspeicherung, siehe public-downloads.ts.
 async function loadYears(): Promise<EnergiekostenYear[]> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
-    () => null,
-  );
+  const result = await get(META_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     await saveYears(DEFAULT_YEARS);
     return DEFAULT_YEARS;

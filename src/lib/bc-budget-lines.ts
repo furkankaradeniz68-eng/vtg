@@ -16,7 +16,7 @@
 // mit der Buchhaltung (Umut/BC-Entwicklung) validiert werden, bevor sie
 // produktiv angezeigt werden.
 import { get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 import { BUDGET_LINES_PATHNAME } from "@/lib/bc-sync";
 import type { BcBudgetLine } from "@/lib/bc-types";
 
@@ -56,7 +56,7 @@ function kategorieVonKonto(glAccountNo: string): FinanzKategorieSlug | undefined
 // (z.B. /api/finanzbericht/pdf) und kann dort einen einmal haengenden Promise
 // dauerhaft auf einer warmen Serverless-Instanz festhalten.
 async function loadBudgetLines(): Promise<BcBudgetLine[]> {
-  const result = await get(BUDGET_LINES_PATHNAME, { access: "private", token: BLOB_TOKEN }).catch(() => null);
+  const result = await get(BUDGET_LINES_PATHNAME, { access: "private", token: BLOB_TOKEN, abortSignal: blobAbortSignal() }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     throw new Error("BC-Finanzdaten-Snapshot nicht gefunden — wurde der naechtliche Sync schon ausgefuehrt?");
   }

@@ -6,7 +6,7 @@
 // kein blobPathname) oder von Admins hochgeladene, oeffentlich lesbare Blobs
 // unter public-downloads/{category}/{id}-{dateiname}.
 import { put, del, get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const META_PATHNAME = "public-downloads-meta.json";
 
@@ -166,9 +166,12 @@ const DEFAULT_ENTRIES: PublicDownloadEntry[] = [
 // Keine Modul-weite Zwischenspeicherung, siehe downloads.ts: diese Metadaten
 // werden von der Anwendung selbst laufend veraendert.
 async function loadPublicDownloads(): Promise<PublicDownloadEntry[]> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
-    () => null,
-  );
+  const result = await get(META_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     await savePublicDownloads(DEFAULT_ENTRIES);
     return DEFAULT_ENTRIES;

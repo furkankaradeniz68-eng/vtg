@@ -5,7 +5,7 @@
 // daher bleiben sie in diesem privaten Blob-Speicher.
 import { cache } from "react";
 import { get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const BLOB_PATHNAME = "verfahren-personendaten.json";
 
@@ -17,7 +17,7 @@ type KoordinatenMap = Record<string, Koordinaten>;
 // bc-companies.ts (sonst bleiben Aenderungen an diesem Blob auf warmen
 // Serverless-Instanzen unbegrenzt lange unsichtbar).
 const loadKoordinaten = cache(async (): Promise<KoordinatenMap> => {
-  const result = await get(BLOB_PATHNAME, { access: "private", token: BLOB_TOKEN });
+  const result = await get(BLOB_PATHNAME, { access: "private", token: BLOB_TOKEN, abortSignal: blobAbortSignal() });
   if (!result || result.statusCode !== 200) {
     throw new Error("Verfahren-Personendaten-Blob nicht gefunden.");
   }

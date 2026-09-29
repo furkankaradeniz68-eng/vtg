@@ -4,7 +4,7 @@
 // erscheint. Gleiches Blob-JSON-Speichermuster wie site-content.ts/
 // public-downloads.ts.
 import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const META_PATHNAME = "site-images-meta.json";
 
@@ -29,9 +29,12 @@ const DEFAULT_ENTRIES: Record<SiteImageKey, SiteImageEntry> = {
 };
 
 async function loadSiteImages(): Promise<Record<SiteImageKey, SiteImageEntry>> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
-    () => null,
-  );
+  const result = await get(META_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     await saveSiteImages(DEFAULT_ENTRIES);
     return DEFAULT_ENTRIES;

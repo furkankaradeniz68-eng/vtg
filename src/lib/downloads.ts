@@ -3,7 +3,7 @@
 // Vercel-Blob-Speicher, nicht im Repo. Die eigentlichen Dateien liegen als
 // separate Blobs unter downloads/{id}-{dateiname}.
 import { put, del, get } from "@vercel/blob";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 
 const META_PATHNAME = "downloads-meta.json";
 
@@ -26,9 +26,12 @@ export type DownloadEntry = {
 // keine Modul-weite Zwischenspeicherung: sonst sehen parallele
 // Serverless-Aufrufe veraltete Stände.
 async function loadDownloads(): Promise<DownloadEntry[]> {
-  const result = await get(META_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(
-    () => null,
-  );
+  const result = await get(META_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
   if (!result || result.statusCode !== 200) return [];
   const text = await new Response(result.stream).text();
   const entries = JSON.parse(text) as DownloadEntry[];
