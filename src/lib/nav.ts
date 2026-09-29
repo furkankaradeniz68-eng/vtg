@@ -59,7 +59,6 @@ export const mainNav: NavItem[] = [
       { label: "Simmern/Bad Kreuznach", href: "/simmern-bad-kreuznach" },
     ],
   },
-  { label: "News", href: "/news" },
   {
     label: "Downloads",
     href: "/downloads",

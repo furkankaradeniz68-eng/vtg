@@ -417,13 +417,15 @@ export default async function AdminDashboardPage({
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Zugewiesene Downloads</h2>
           {downloads.length > 0 ? (
             <SimpleTable
-              columns={["Benutzer", "Datei", "Hochgeladen", "Läuft ab", "Status", ""]}
+              columns={["Benutzer", "Datei", "Hochgeladen", "Läuft ab", "Status", "Bestätigt", "Anzahl", ""]}
               rows={downloads.map((d) => [
                 d.username,
                 d.filename,
                 formatDate(d.uploadedAt),
                 formatDate(d.expiresAt),
                 isDownloadActive(d) ? "Aktiv" : "Abgelaufen",
+                d.lastDownloadedAt ? `Ja (${formatDate(d.lastDownloadedAt)})` : "Nein",
+                d.downloadCount,
                 <form key={d.id} action="/api/downloads/delete" method="POST">
                   <input type="hidden" name="id" value={d.id} />
                   <button type="submit" className="text-sm text-red-600 hover:underline">

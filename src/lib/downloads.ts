@@ -14,6 +14,11 @@ export type DownloadEntry = {
   blobPathname: string;
   uploadedAt: string;
   expiresAt: string;
+  // Bestaetigung: wird hochgezaehlt, sobald der zugewiesene Mandant (nicht
+  // der Admin) die Datei tatsaechlich abruft. Fuer die DLR-Ansicht auf der
+  // Verfahrensauswahl-Seite und die Admin-Uebersicht.
+  downloadCount: number;
+  lastDownloadedAt?: string;
 };
 
 // Diese Metadaten werden von der Anwendung selbst laufend veraendert
@@ -26,7 +31,10 @@ async function loadDownloads(): Promise<DownloadEntry[]> {
   );
   if (!result || result.statusCode !== 200) return [];
   const text = await new Response(result.stream).text();
-  return JSON.parse(text) as DownloadEntry[];
+  const entries = JSON.parse(text) as DownloadEntry[];
+  // Abwaertskompatibel: Eintraege, die vor Einfuehrung der Bestaetigungs-
+  // Zaehlung angelegt wurden, haben noch kein downloadCount-Feld.
+  return entries.map((e) => ({ ...e, downloadCount: e.downloadCount ?? 0 }));
 }
 
 async function saveDownloads(entries: DownloadEntry[]): Promise<void> {
@@ -60,6 +68,18 @@ export async function getDownloadById(id: string): Promise<DownloadEntry | undef
 export async function addDownload(entry: DownloadEntry): Promise<void> {
   const entries = await loadDownloads();
   entries.push(entry);
+  await saveDownloads(entries);
+}
+
+// Wird beim tatsaechlichen Abruf durch den zugewiesenen Mandanten aufgerufen
+// (nicht bei Admin-Zugriff) — das ist die "Bestaetigung", dass der Download
+// angekommen ist, plus laufende Zaehlung fuer die DLR-/Admin-Ansicht.
+export async function recordDownload(id: string): Promise<void> {
+  const entries = await loadDownloads();
+  const entry = entries.find((e) => e.id === id);
+  if (!entry) return;
+  entry.downloadCount += 1;
+  entry.lastDownloadedAt = new Date().toISOString();
   await saveDownloads(entries);
 }
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { get } from "@vercel/blob";
 import { requireSession } from "@/lib/auth";
 import { BLOB_TOKEN } from "@/lib/blob-token";
-import { getDownloadById, isDownloadActive } from "@/lib/downloads";
+import { getDownloadById, isDownloadActive, recordDownload } from "@/lib/downloads";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
@@ -25,6 +25,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const result = await get(entry.blobPathname, { access: "private", token: BLOB_TOKEN }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     return NextResponse.json({ error: "Datei nicht gefunden." }, { status: 404 });
+  }
+
+  // Bestaetigung/Zaehlung nur beim tatsaechlichen Abruf durch den
+  // zugewiesenen Mandanten selbst, nicht wenn ein Admin die Datei ansieht.
+  if (session.username === entry.username) {
+    await recordDownload(entry.id);
   }
 
   return new NextResponse(result.stream, {

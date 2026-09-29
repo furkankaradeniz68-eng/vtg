@@ -43,6 +43,7 @@ export async function POST(request: Request) {
     blobPathname: blob.pathname,
     uploadedAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),
+    downloadCount: 0,
   });
 
   return NextResponse.redirect(new URL("/admin", request.url), 303);
