@@ -14,6 +14,7 @@ import { getEnergiekostenYears } from "@/lib/energiekostenzuschlag";
 import { getUmlageRows } from "@/lib/umlage";
 import { getStellenausschreibungen } from "@/lib/stellenausschreibung";
 import { getSiteImage } from "@/lib/site-images";
+import { getUserStats, getRecentEvents } from "@/lib/analytics";
 
 export const metadata: Metadata = { title: "Admin-Dashboard | VTG Rheinland-Pfalz" };
 
@@ -21,7 +22,24 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE");
 }
 
-type Tab = "mitglieder" | "mitgliederbereich" | "website" | "personen" | "seiteninhalte";
+function formatDateTimeShort(iso: string): string {
+  return new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  dlr: "DLR",
+  abonnent: "Mandant",
+  bauleiter: "Bauleiter",
+};
+
+type Tab =
+  | "mitglieder"
+  | "mitgliederbereich"
+  | "website"
+  | "personen"
+  | "seiteninhalte"
+  | "analytics";
 
 const CATEGORIES: { key: PublicDownloadCategory; label: string; publicHref: string }[] = [
   { key: "satzung-vordrucke", label: "Satzung und Vordrucke", publicHref: "/download-satzung-vordrucke" },
@@ -67,7 +85,9 @@ export default async function AdminDashboardPage({
           ? "seiteninhalte"
           : rawTab === "mitgliederbereich"
             ? "mitgliederbereich"
-            : "mitglieder";
+            : rawTab === "analytics"
+              ? "analytics"
+              : "mitglieder";
   const activeCategory =
     CATEGORIES.find((c) => c.key === rawCategory)?.key ?? CATEGORIES[0].key;
 
@@ -86,6 +106,8 @@ export default async function AdminDashboardPage({
   const umlageRows = tab === "mitgliederbereich" ? await getUmlageRows() : [];
   const zinsMeta = SITE_CONTENT_PAGES.find((p) => p.slug === "zins")!;
   const umlageTextMeta = SITE_CONTENT_PAGES.find((p) => p.slug === "umlage")!;
+  const userStats = tab === "analytics" ? await getUserStats() : [];
+  const recentEvents = tab === "analytics" ? await getRecentEvents(50) : [];
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -109,6 +131,9 @@ export default async function AdminDashboardPage({
         </Link>
         <Link href={tabHref("seiteninhalte")} className={tabClass(tab === "seiteninhalte")}>
           Öffentliche Seiteninhalte
+        </Link>
+        <Link href={tabHref("analytics")} className={tabClass(tab === "analytics")}>
+          Analytics
         </Link>
       </nav>
 
@@ -435,6 +460,48 @@ export default async function AdminDashboardPage({
             />
           ) : (
             <p className="text-base leading-relaxed text-neutral-700">Es sind noch keine Downloads zugewiesen.</p>
+          )}
+        </>
+      ) : tab === "analytics" ? (
+        <>
+          <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Nutzer-Übersicht</h2>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Logins und Downloads je Benutzer seit Einführung des Analytics-Trackings. Erfasst werden Logins sowie
+            Downloads aus dem Mitgliederbereich (zugewiesene Dateien, Finanzbericht-PDFs, Kontenplan). Statische
+            Datei-Links ohne eigene API-Route (z. B. TG-Einzeldaten-ZIP) lassen sich technisch nicht zuordnen.
+          </p>
+          {userStats.length > 0 ? (
+            <SimpleTable
+              columns={["Benutzer", "Rolle", "Logins", "Letzter Login", "Downloads", "Letzter Download"]}
+              rows={userStats.map((u) => [
+                u.username,
+                ROLE_LABELS[u.role] ?? u.role,
+                u.loginCount,
+                u.lastLoginAt ? formatDateTimeShort(u.lastLoginAt) : "–",
+                u.downloadCount,
+                u.lastDownloadAt ? formatDateTimeShort(u.lastDownloadAt) : "–",
+              ])}
+            />
+          ) : (
+            <p className="mb-12 text-base leading-relaxed text-neutral-700">
+              Es liegen noch keine Analytics-Daten vor.
+            </p>
+          )}
+
+          <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Letzte Aktivität</h2>
+          {recentEvents.length > 0 ? (
+            <SimpleTable
+              columns={["Zeitpunkt", "Benutzer", "Rolle", "Aktion", "Details"]}
+              rows={recentEvents.map((e) => [
+                formatDateTimeShort(e.at),
+                e.username,
+                ROLE_LABELS[e.role] ?? e.role,
+                e.type === "login" ? "Login" : "Download",
+                e.label ?? "–",
+              ])}
+            />
+          ) : (
+            <p className="text-base leading-relaxed text-neutral-700">Es liegen noch keine Ereignisse vor.</p>
           )}
         </>
       ) : (

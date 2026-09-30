@@ -249,7 +249,7 @@ export default function Header({
       {role && (
         <div className="bg-vtg-yellow/15">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <Header2 role={role} />
+            <Header2 role={role} portalMode={portalMode} />
           </div>
         </div>
       )}

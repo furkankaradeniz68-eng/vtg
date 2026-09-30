@@ -34,12 +34,18 @@ function Header2Link({
   );
 }
 
-export default function Header2({ role }: { role: MemberRole | null }) {
+export default function Header2({
+  role,
+  portalMode = false,
+}: {
+  role: MemberRole | null;
+  portalMode?: boolean;
+}) {
   const pathname = usePathname();
 
   if (!role) return null;
 
-  const items = header2Nav[role];
+  const items = header2Nav[role].filter((item) => !(portalMode && item.hideOnPortal));
   const secondRow = header2SecondRow[role];
 
   return (

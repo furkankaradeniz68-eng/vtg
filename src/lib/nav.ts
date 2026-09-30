@@ -2,6 +2,10 @@ export type NavItem = {
   label: string;
   href: string;
   children?: NavItem[];
+  // Auf der reduzierten Portal-Domain (z. B. VTG NRW) ausblenden — z. B.
+  // TG-Einzeldaten, die dort laut Absprache nicht angeboten werden sollen,
+  // auf der RLP-Hauptdomain aber weiterhin fuer DLRs sichtbar bleiben.
+  hideOnPortal?: boolean;
 };
 
 // Links to static files (PDF/ZIP/...) must use a plain <a>, not next/link's
@@ -97,7 +101,7 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
     { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
-    { label: "TG-Einzeldaten (ZIP)", href: "/downloads/TGEinzeldaten.zip" },
+    { label: "TG-Einzeldaten (ZIP)", href: "/downloads/TGEinzeldaten.zip", hideOnPortal: true },
     { label: "Kontenplan (PDF)", href: "/api/kontenplan" },
   ],
 };

@@ -8,6 +8,7 @@ import {
   type FinanzKategorieSlug,
 } from "@/lib/bc-budget-lines";
 import { generateFinanzberichtPdf } from "@/lib/finanzbericht-pdf";
+import { recordEvent } from "@/lib/analytics";
 
 const GUELTIGE_SLUGS: FinanzKategorieSlug[] = [
   "einnahmen",
@@ -54,6 +55,8 @@ export async function GET(request: Request) {
     /\s+/g,
     "_",
   );
+
+  await recordEvent({ type: "download", username: session.username, role: session.role, label: dateiname });
 
   return new NextResponse(new Blob([new Uint8Array(pdfBytes)]), {
     headers: {

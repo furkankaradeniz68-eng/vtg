@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { istVerfahrenErreichbar } from "@/lib/bc-companies";
 import { BLOB_TOKEN } from "@/lib/blob-token";
 import { getDownloadById, isDownloadActive, recordDownload } from "@/lib/downloads";
+import { recordEvent } from "@/lib/analytics";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
@@ -36,6 +37,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (session.role === "dlr") {
     await recordDownload(entry.id);
   }
+  await recordEvent({ type: "download", username: session.username, role: session.role, label: entry.filename });
 
   return new NextResponse(result.stream, {
     headers: {

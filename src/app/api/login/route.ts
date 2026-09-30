@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyCredentials } from "@/lib/credentials";
 import { createSessionToken, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
+import { recordEvent } from "@/lib/analytics";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -31,6 +32,11 @@ export async function POST(request: Request) {
     path: "/",
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
+
+  // Fuer den Analytics-Tab im Admin-Bereich mitschreiben — darf den Login
+  // selbst nicht verzoegern/blockieren koennen, siehe Fehlertoleranz in
+  // recordEvent().
+  await recordEvent({ type: "login", username: user.username, role: user.role });
 
   return NextResponse.json({ ok: true, role: user.role });
 }
