@@ -7,15 +7,47 @@ import type { UserStat, AnalyticsEvent } from "@/lib/analytics";
 type UserSortKey = "username" | "role" | "logins" | "lastLogin" | "downloads" | "lastDownload";
 type SortDir = "asc" | "desc";
 
+const PAGE_SIZE = 10;
+
 function formatDateTimeShort(iso: string): string {
   return new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
 }
 
 const headerButtonClass = "flex items-center gap-1 hover:text-vtg-orange";
 
+const pageButtonClass =
+  "rounded border border-neutral-300 px-3 py-1.5 text-sm hover:border-vtg-orange hover:text-vtg-orange disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-300 disabled:hover:text-neutral-700";
+
 function sortIndicator(active: boolean, dir: SortDir): string {
   if (!active) return "";
   return dir === "asc" ? " ▲" : " ▼";
+}
+
+function PaginationControls({
+  page,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="mt-3 flex items-center justify-between">
+      <button type="button" onClick={onPrev} disabled={page === 0} className={pageButtonClass}>
+        ‹ Zurück
+      </button>
+      <span className="text-sm text-neutral-600">
+        Seite {page + 1} von {totalPages}
+      </span>
+      <button type="button" onClick={onNext} disabled={page >= totalPages - 1} className={pageButtonClass}>
+        Weiter ›
+      </button>
+    </div>
+  );
 }
 
 export default function AnalyticsOverview({
@@ -31,6 +63,8 @@ export default function AnalyticsOverview({
   const [sortKey, setSortKey] = useState<UserSortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [eventQuery, setEventQuery] = useState("");
+  const [userPage, setUserPage] = useState(0);
+  const [eventPage, setEventPage] = useState(0);
 
   const filteredUsers = useMemo(() => {
     const q = userQuery.trim().toLowerCase();
@@ -80,6 +114,14 @@ export default function AnalyticsOverview({
     });
   }, [eventQuery, recentEvents, roleLabels]);
 
+  const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const currentUserPage = Math.min(userPage, userTotalPages - 1);
+  const pagedUsers = filteredUsers.slice(currentUserPage * PAGE_SIZE, currentUserPage * PAGE_SIZE + PAGE_SIZE);
+
+  const eventTotalPages = Math.max(1, Math.ceil(filteredEvents.length / PAGE_SIZE));
+  const currentEventPage = Math.min(eventPage, eventTotalPages - 1);
+  const pagedEvents = filteredEvents.slice(currentEventPage * PAGE_SIZE, currentEventPage * PAGE_SIZE + PAGE_SIZE);
+
   function toggleSort(key: UserSortKey) {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -87,6 +129,7 @@ export default function AnalyticsOverview({
       setSortKey(key);
       setSortDir("desc");
     }
+    setUserPage(0);
   }
 
   return (
@@ -95,7 +138,10 @@ export default function AnalyticsOverview({
         <input
           type="text"
           value={userQuery}
-          onChange={(e) => setUserQuery(e.target.value)}
+          onChange={(e) => {
+            setUserQuery(e.target.value);
+            setUserPage(0);
+          }}
           placeholder="Benutzer suchen (Name, Rolle)…"
           className="w-full max-w-sm border border-neutral-300 px-3 py-2 text-sm focus:border-vtg-yellow focus:outline-none"
         />
@@ -148,7 +194,7 @@ export default function AnalyticsOverview({
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((u) => (
+              {pagedUsers.map((u) => (
                 <tr key={u.username} className="border-b border-neutral-100">
                   <td className="p-3 text-neutral-700">{u.username}</td>
                   <td className="p-3 text-neutral-700">{roleLabels[u.role] ?? u.role}</td>
@@ -162,6 +208,14 @@ export default function AnalyticsOverview({
               ))}
             </tbody>
           </table>
+          <div className="border-t border-neutral-200 p-3">
+            <PaginationControls
+              page={currentUserPage}
+              totalPages={userTotalPages}
+              onPrev={() => setUserPage((p) => Math.max(0, p - 1))}
+              onNext={() => setUserPage((p) => Math.min(userTotalPages - 1, p + 1))}
+            />
+          </div>
         </div>
       ) : (
         <p className="mb-12 text-base leading-relaxed text-neutral-700">Kein Benutzer gefunden.</p>
@@ -171,21 +225,32 @@ export default function AnalyticsOverview({
       <input
         type="text"
         value={eventQuery}
-        onChange={(e) => setEventQuery(e.target.value)}
+        onChange={(e) => {
+          setEventQuery(e.target.value);
+          setEventPage(0);
+        }}
         placeholder="Aktivität suchen (Benutzer, Rolle, Aktion, Details)…"
         className="mb-4 w-full max-w-sm border border-neutral-300 px-3 py-2 text-sm focus:border-vtg-yellow focus:outline-none"
       />
       {filteredEvents.length > 0 ? (
-        <SimpleTable
-          columns={["Zeitpunkt", "Benutzer", "Rolle", "Aktion", "Details"]}
-          rows={filteredEvents.map((e) => [
-            formatDateTimeShort(e.at),
-            e.username,
-            roleLabels[e.role] ?? e.role,
-            e.type === "login" ? "Login" : "Download",
-            e.label ?? "–",
-          ])}
-        />
+        <div>
+          <SimpleTable
+            columns={["Zeitpunkt", "Benutzer", "Rolle", "Aktion", "Details"]}
+            rows={pagedEvents.map((e) => [
+              formatDateTimeShort(e.at),
+              e.username,
+              roleLabels[e.role] ?? e.role,
+              e.type === "login" ? "Login" : "Download",
+              e.label ?? "–",
+            ])}
+          />
+          <PaginationControls
+            page={currentEventPage}
+            totalPages={eventTotalPages}
+            onPrev={() => setEventPage((p) => Math.max(0, p - 1))}
+            onNext={() => setEventPage((p) => Math.min(eventTotalPages - 1, p + 1))}
+          />
+        </div>
       ) : (
         <p className="text-base leading-relaxed text-neutral-700">Keine Aktivität gefunden.</p>
       )}
