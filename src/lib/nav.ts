@@ -15,7 +15,7 @@ export type NavItem = {
 // ueber eine API-Route aus dem Blob-Speicher gestreamt (z.B. das admin-
 // ersetzbare Kontenplan-PDF) — solche Routen tragen keine Dateiendung in der
 // URL und muessen deshalb explizit gelistet werden.
-const FILE_API_ROUTES = ["/api/kontenplan"];
+const FILE_API_ROUTES = ["/api/kontenplan", "/api/tg-einzeldaten/zip"];
 
 export function isFileHref(href: string): boolean {
   return /\.[a-z0-9]{2,4}$/i.test(href) || FILE_API_ROUTES.includes(href);
@@ -101,7 +101,7 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
     { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
-    { label: "TG-Einzeldaten (ZIP)", href: "/downloads/TGEinzeldaten.zip", hideOnPortal: true },
+    { label: "TG-Einzeldaten (ZIP)", href: "/api/tg-einzeldaten/zip", hideOnPortal: true },
     { label: "Kontenplan (PDF)", href: "/api/kontenplan" },
   ],
 };
