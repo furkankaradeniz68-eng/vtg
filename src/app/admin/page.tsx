@@ -15,15 +15,12 @@ import { getUmlageRows } from "@/lib/umlage";
 import { getStellenausschreibungen } from "@/lib/stellenausschreibung";
 import { getSiteImage } from "@/lib/site-images";
 import { getUserStats, getRecentEvents } from "@/lib/analytics";
+import AnalyticsOverview from "@/components/AnalyticsOverview";
 
 export const metadata: Metadata = { title: "Admin-Dashboard | VTG Rheinland-Pfalz" };
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE");
-}
-
-function formatDateTimeShort(iso: string): string {
-  return new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -470,38 +467,12 @@ export default async function AdminDashboardPage({
             Downloads aus dem Mitgliederbereich (zugewiesene Dateien, Finanzbericht-PDFs, Kontenplan). Statische
             Datei-Links ohne eigene API-Route (z. B. TG-Einzeldaten-ZIP) lassen sich technisch nicht zuordnen.
           </p>
-          {userStats.length > 0 ? (
-            <SimpleTable
-              columns={["Benutzer", "Rolle", "Logins", "Letzter Login", "Downloads", "Letzter Download"]}
-              rows={userStats.map((u) => [
-                u.username,
-                ROLE_LABELS[u.role] ?? u.role,
-                u.loginCount,
-                u.lastLoginAt ? formatDateTimeShort(u.lastLoginAt) : "–",
-                u.downloadCount,
-                u.lastDownloadAt ? formatDateTimeShort(u.lastDownloadAt) : "–",
-              ])}
-            />
+          {userStats.length > 0 || recentEvents.length > 0 ? (
+            <AnalyticsOverview userStats={userStats} recentEvents={recentEvents} roleLabels={ROLE_LABELS} />
           ) : (
             <p className="mb-12 text-base leading-relaxed text-neutral-700">
               Es liegen noch keine Analytics-Daten vor.
             </p>
-          )}
-
-          <h2 className="mt-12 mb-4 font-heading text-lg font-bold text-neutral-900">Letzte Aktivität</h2>
-          {recentEvents.length > 0 ? (
-            <SimpleTable
-              columns={["Zeitpunkt", "Benutzer", "Rolle", "Aktion", "Details"]}
-              rows={recentEvents.map((e) => [
-                formatDateTimeShort(e.at),
-                e.username,
-                ROLE_LABELS[e.role] ?? e.role,
-                e.type === "login" ? "Login" : "Download",
-                e.label ?? "–",
-              ])}
-            />
-          ) : (
-            <p className="text-base leading-relaxed text-neutral-700">Es liegen noch keine Ereignisse vor.</p>
           )}
         </>
       ) : (
