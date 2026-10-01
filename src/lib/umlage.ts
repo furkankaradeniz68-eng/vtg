@@ -62,6 +62,11 @@ export async function getUmlageRows(): Promise<UmlageRow[]> {
   return [...rows].sort((a, b) => a.year - b.year);
 }
 
+export async function getUmlageRow(id: string): Promise<UmlageRow | undefined> {
+  const rows = await loadUmlageRows();
+  return rows.find((r) => r.id === id);
+}
+
 export async function addUmlageRow(year: number, percent: string): Promise<void> {
   const rows = await loadUmlageRows();
   rows.push({ id: crypto.randomUUID(), year, percent, updatedAt: new Date().toISOString() });

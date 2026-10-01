@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import SimpleTable from "@/components/SimpleTable";
+import PaginatedTable from "@/components/PaginatedTable";
 import AbonnentSearchSelect from "@/components/AbonnentSearchSelect";
 import PersonenSearchTable from "@/components/PersonenSearchTable";
 import { listBcAbonnenten, getLastSync, formatDateTime } from "@/lib/bc-companies";
@@ -290,7 +291,7 @@ export default async function AdminDashboardPage({
             </button>
           </form>
           {energiekostenYears.length > 0 ? (
-            <SimpleTable
+            <PaginatedTable
               columns={["Jahr", "Zuletzt aktualisiert", "", ""]}
               rows={energiekostenYears.map((y) => [
                 y.year,
@@ -356,32 +357,27 @@ export default async function AdminDashboardPage({
           </form>
 
           {umlageRows.length > 0 ? (
-            <div className="flex flex-col gap-3">
-              {umlageRows.map((row) => (
-                <div key={row.id} className="flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4">
-                  <form action="/api/umlage/update" method="POST" className="flex flex-wrap items-end gap-3">
-                    <input type="hidden" name="id" value={row.id} />
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-neutral-600">Jahr</label>
-                      <input name="year" type="number" defaultValue={row.year} required className={inputClass} />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-neutral-600">Umlage</label>
-                      <input name="percent" defaultValue={row.percent} required className={inputClass} />
-                    </div>
-                    <button type="submit" className={primaryButtonClass}>
-                      Speichern
-                    </button>
-                  </form>
-                  <form action="/api/umlage/delete" method="POST">
-                    <input type="hidden" name="id" value={row.id} />
-                    <button type="submit" className="text-sm text-red-600 hover:underline">
-                      Löschen
-                    </button>
-                  </form>
-                </div>
-              ))}
-            </div>
+            <PaginatedTable
+              columns={["Jahr", "Umlage", "Zuletzt aktualisiert", "", ""]}
+              rows={umlageRows.map((row) => [
+                row.year,
+                row.percent,
+                formatDate(row.updatedAt),
+                <Link
+                  key={`edit-${row.id}`}
+                  href={`/admin/umlage/${row.id}/bearbeiten`}
+                  className="text-sm text-vtg-orange hover:underline"
+                >
+                  Bearbeiten
+                </Link>,
+                <form key={`delete-${row.id}`} action="/api/umlage/delete" method="POST">
+                  <input type="hidden" name="id" value={row.id} />
+                  <button type="submit" className="text-sm text-red-600 hover:underline">
+                    Löschen
+                  </button>
+                </form>,
+              ])}
+            />
           ) : (
             <p className="text-base leading-relaxed text-neutral-700">Es sind noch keine Umlage-Zeilen hinterlegt.</p>
           )}
