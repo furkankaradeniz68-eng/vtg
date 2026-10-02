@@ -11,12 +11,14 @@ export default function SiteChrome({
   children,
   loggedIn,
   role,
+  ownNr,
   isAdmin,
   portalMode,
 }: {
   children: React.ReactNode;
   loggedIn: boolean;
   role: MemberRole | null;
+  ownNr?: string | null;
   isAdmin: boolean;
   portalMode: boolean;
 }) {
@@ -27,7 +29,7 @@ export default function SiteChrome({
 
   return (
     <>
-      <Header loggedIn={loggedIn} role={role} isAdmin={isAdmin} portalMode={portalMode} />
+      <Header loggedIn={loggedIn} role={role} ownNr={ownNr} isAdmin={isAdmin} portalMode={portalMode} />
       <main className="flex-1">{children}</main>
       <Footer portalMode={portalMode} />
     </>

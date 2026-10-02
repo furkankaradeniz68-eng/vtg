@@ -95,14 +95,20 @@ function Header2Item({
 
 export default function Header2({
   role,
+  ownNr,
   portalMode = false,
 }: {
   role: MemberRole | null;
+  // Eigene Produktnummer des Mandanten (= session.username bei "abonnent"),
+  // von RootLayout durchgereicht. Ersetzt fuer Abonnenten die ?id=... Query,
+  // die nur Interne ueber die Verfahrensauswahl setzen - ein Mandant waehlt
+  // sein Verfahren nicht, er hat immer genau eines.
+  ownNr?: string | null;
   portalMode?: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const selectedId = searchParams.get("id");
+  const selectedId = role === "abonnent" ? (ownNr ?? null) : searchParams.get("id");
 
   if (!role) return null;
 

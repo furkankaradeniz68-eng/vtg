@@ -11,10 +11,14 @@ export const maxDuration = 60;
 // hier aber auf einen einzelnen Mandanten beschraenkt. Im DLR/Admin-Header
 // heisst der Link dazu "Kontenübersicht" und haengt vom ueber die
 // Verfahrensauswahl gewaehlten Verfahren ab (?id=... in der URL, siehe
-// Header2.tsx/nav.ts hrefPrefix-Handling).
+// Header2.tsx/nav.ts hrefPrefix-Handling). Abonnenten koennen dieselbe Route
+// fuer ihre eigene Nr aufrufen (Kontenübersicht im Mitgliederbereich-Header,
+// nr = session.username, siehe ownNr-Prop-Kette ab RootLayout) - welche Nr
+// erlaubt ist, entscheidet ausschliesslich istVerfahrenErreichbar() unten,
+// nicht die Rollenpruefung hier.
 export async function GET(request: Request, { params }: { params: Promise<{ nr: string }> }) {
   const session = await requireSession();
-  if (session.role !== "dlr" && session.role !== "admin") {
+  if (session.role !== "dlr" && session.role !== "admin" && session.role !== "abonnent") {
     return NextResponse.json({ error: "Kein Zugriff." }, { status: 403 });
   }
 

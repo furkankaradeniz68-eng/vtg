@@ -43,6 +43,7 @@ export default async function RootLayout({
       : session.role === "dlr" || session.role === "admin"
         ? "intern"
         : null;
+  const ownNr = session?.role === "abonnent" ? session.username : null;
   const isAdmin = session?.role === "admin";
   const host = (await headers()).get("host");
   const portalMode = isPortalHost(host);
@@ -53,7 +54,7 @@ export default async function RootLayout({
       className={`${montserrat.variable} ${roboto.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <SiteChrome loggedIn={!!session} role={role} isAdmin={isAdmin} portalMode={portalMode}>
+        <SiteChrome loggedIn={!!session} role={role} ownNr={ownNr} isAdmin={isAdmin} portalMode={portalMode}>
           {children}
         </SiteChrome>
       </body>

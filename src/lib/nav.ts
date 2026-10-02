@@ -109,7 +109,16 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
     { label: "Beitragssätze", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf", icon: "download" },
-    { label: "Kontenübersicht", href: "/api/kontenplan", icon: "download" },
+    // Laedt die eigene TG-Einzeldaten-XLSX des Mandanten aus BC (nicht den
+    // allgemeinen Kontenplan) - hrefPrefix wird in Header2.tsx mit der
+    // eigenen Produktnummer (= session.username bei "abonnent") aufgeloest,
+    // siehe ownNr-Prop-Kette ab RootLayout.
+    {
+      label: "Kontenübersicht",
+      href: "/mitgliederbereich/verfahrensdaten",
+      hrefPrefix: "/api/tg-einzeldaten/",
+      icon: "download",
+    },
   ],
   intern: [
     { label: "Verfahrensauswahl", href: "/mitgliederbereich/verfahrensauswahl" },
