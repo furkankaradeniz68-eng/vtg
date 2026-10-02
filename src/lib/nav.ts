@@ -6,19 +6,36 @@ export type NavItem = {
   // TG-Einzeldaten, die dort laut Absprache nicht angeboten werden sollen,
   // auf der RLP-Hauptdomain aber weiterhin fuer DLRs sichtbar bleiben.
   hideOnPortal?: boolean;
+  // Zeigt ein kleines Download-Symbol hinter dem Label (siehe Header2.tsx) -
+  // rein visuell, unabhaengig davon ob href selbst eine Datei ist oder eine
+  // normale Seite mit Download-Funktion dahinter (z.B. Bewilligungs- und
+  // Abrufuebersicht).
+  icon?: "download";
+  // Fuer Items, deren Ziel vom aktuell gewaehlten Verfahren abhaengt (die
+  // ?id=... Query auf Verfahrensdaten/Finanzuebersicht). href wird dann
+  // ignoriert; Header2.tsx baut die tatsaechliche URL aus hrefPrefix + der
+  // aktuellen id. Ohne gewaehltes Verfahren wird das Item deaktiviert
+  // dargestellt.
+  hrefPrefix?: string;
 };
 
 // Links to static files (PDF/ZIP/...) must use a plain <a>, not next/link's
 // client-side router — the router expects an RSC payload back and throws
 // when a binary file is returned instead, crashing the whole page. Manche
 // Dateien liegen inzwischen nicht mehr statisch unter /public, sondern werden
-// ueber eine API-Route aus dem Blob-Speicher gestreamt (z.B. das admin-
-// ersetzbare Kontenplan-PDF) — solche Routen tragen keine Dateiendung in der
-// URL und muessen deshalb explizit gelistet werden.
-const FILE_API_ROUTES = ["/api/kontenplan", "/api/tg-einzeldaten/zip"];
+// ueber eine API-Route aus dem Blob-Speicher bzw. direkt aus Business Central
+// gestreamt (z.B. das admin-ersetzbare Kontenplan-PDF oder die TG-
+// Einzeldaten-Exports) — solche Routen tragen keine Dateiendung in der URL
+// und muessen deshalb explizit erkannt werden.
+const FILE_API_ROUTES = ["/api/kontenplan"];
+const FILE_API_PREFIXES = ["/api/tg-einzeldaten/"];
 
 export function isFileHref(href: string): boolean {
-  return /\.[a-z0-9]{2,4}$/i.test(href) || FILE_API_ROUTES.includes(href);
+  return (
+    /\.[a-z0-9]{2,4}$/i.test(href) ||
+    FILE_API_ROUTES.includes(href) ||
+    FILE_API_PREFIXES.some((prefix) => href.startsWith(prefix))
+  );
 }
 
 export const mainNav: NavItem[] = [
@@ -91,24 +108,38 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
-    { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
-    { label: "Kontenplan (PDF)", href: "/api/kontenplan" },
+    { label: "Beitragssätze", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf", icon: "download" },
+    { label: "Kontenübersicht", href: "/api/kontenplan", icon: "download" },
   ],
   intern: [
     { label: "Verfahrensauswahl", href: "/mitgliederbereich/verfahrensauswahl" },
     { label: "Verfahrensdaten", href: "/mitgliederbereich/verfahrensdaten" },
+    // Haengt vom aktuell gewaehlten Verfahren ab (?id=... aus Verfahrensauswahl) -
+    // ohne Auswahl deaktiviert, siehe hrefPrefix-Handling in Header2.tsx. href
+    // dient nur als Fallback-Ziel, falls das Item trotzdem ohne hrefPrefix-
+    // Aufloesung angeklickt wird.
+    {
+      label: "Kontenübersicht",
+      href: "/mitgliederbereich/verfahrensauswahl",
+      hrefPrefix: "/api/tg-einzeldaten/",
+      icon: "download",
+    },
     { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
     { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
-    { label: "TG-Einzeldaten (ZIP)", href: "/api/tg-einzeldaten/zip", hideOnPortal: true },
-    { label: "Kontenplan (PDF)", href: "/api/kontenplan" },
+    { label: "TG-Einzeldaten (ZIP)", href: "/api/tg-einzeldaten/zip", hideOnPortal: true, icon: "download" },
+    { label: "Kontenplan TG", href: "/api/kontenplan", icon: "download" },
   ],
 };
 
 export const header2SecondRow: Partial<Record<MemberRole, NavItem[]>> = {
   intern: [
-    { label: "Bewilligungs- und Abrufübersicht", href: "/mitgliederbereich/bewilligungs-und-abrufuebersicht" },
+    {
+      label: "Bewilligungs- und Abrufübersicht",
+      href: "/mitgliederbereich/bewilligungs-und-abrufuebersicht",
+      icon: "download",
+    },
   ],
 };
 
