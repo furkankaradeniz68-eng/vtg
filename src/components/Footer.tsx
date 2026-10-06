@@ -23,13 +23,23 @@ export default function Footer({ portalMode = false }: { portalMode?: boolean })
       <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
         <div className="flex flex-col flex-wrap border-b border-neutral-200 pb-8 sm:flex-row sm:items-start">
           <div className="border-neutral-200 py-4 pr-8 sm:w-[35%] sm:border-b-0">
-            <Image
-              src="/images/logo/vtg-schrift.png"
-              alt="VTG Rheinland-Pfalz Logo"
-              width={4006}
-              height={1558}
-              className="h-[107px] w-auto object-contain"
-            />
+            {portalMode ? (
+              <Image
+                src="/images/logo/vtg-nrw-logo.png"
+                alt="VTG Nordrhein-Westfalen Logo"
+                width={1254}
+                height={1254}
+                className="h-[107px] w-auto object-contain"
+              />
+            ) : (
+              <Image
+                src="/images/logo/vtg-schrift.png"
+                alt="VTG Rheinland-Pfalz Logo"
+                width={4006}
+                height={1558}
+                className="h-[107px] w-auto object-contain"
+              />
+            )}
             <p className="mt-4 text-sm text-neutral-600">
               Verband der Teilnehmergemeinschaften Rheinland-Pfalz.
               <br />
