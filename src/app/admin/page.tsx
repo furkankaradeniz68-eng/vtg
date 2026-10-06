@@ -17,6 +17,7 @@ import { getStellenausschreibungen } from "@/lib/stellenausschreibung";
 import { getSiteImage } from "@/lib/site-images";
 import { getUserStats, getRecentEvents } from "@/lib/analytics";
 import AnalyticsOverview from "@/components/AnalyticsOverview";
+import { getLinksByCategory, getLinkCategoryNames } from "@/lib/links";
 
 export const metadata: Metadata = { title: "Admin-Dashboard | VTG Rheinland-Pfalz" };
 
@@ -37,6 +38,7 @@ type Tab =
   | "website"
   | "personen"
   | "seiteninhalte"
+  | "links"
   | "analytics";
 
 const CATEGORIES: { key: PublicDownloadCategory; label: string; publicHref: string }[] = [
@@ -81,11 +83,13 @@ export default async function AdminDashboardPage({
         ? "personen"
         : rawTab === "seiteninhalte"
           ? "seiteninhalte"
-          : rawTab === "mitgliederbereich"
-            ? "mitgliederbereich"
-            : rawTab === "analytics"
-              ? "analytics"
-              : "mitglieder";
+          : rawTab === "links"
+            ? "links"
+            : rawTab === "mitgliederbereich"
+              ? "mitgliederbereich"
+              : rawTab === "analytics"
+                ? "analytics"
+                : "mitglieder";
   const activeCategory =
     CATEGORIES.find((c) => c.key === rawCategory)?.key ?? CATEGORIES[0].key;
 
@@ -106,6 +110,8 @@ export default async function AdminDashboardPage({
   const umlageTextMeta = SITE_CONTENT_PAGES.find((p) => p.slug === "umlage")!;
   const userStats = tab === "analytics" ? await getUserStats() : [];
   const recentEvents = tab === "analytics" ? await getRecentEvents(50) : [];
+  const linkCategories = tab === "links" ? await getLinksByCategory() : [];
+  const linkCategoryNames = tab === "links" ? await getLinkCategoryNames() : [];
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -129,6 +135,9 @@ export default async function AdminDashboardPage({
         </Link>
         <Link href={tabHref("seiteninhalte")} className={tabClass(tab === "seiteninhalte")}>
           Öffentliche Seiteninhalte
+        </Link>
+        <Link href={tabHref("links")} className={tabClass(tab === "links")}>
+          Links-Seite
         </Link>
         <Link href={tabHref("analytics")} className={tabClass(tab === "analytics")}>
           Analytics
@@ -453,6 +462,116 @@ export default async function AdminDashboardPage({
             />
           ) : (
             <p className="text-base leading-relaxed text-neutral-700">Es sind noch keine Downloads zugewiesen.</p>
+          )}
+        </>
+      ) : tab === "links" ? (
+        <>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-heading text-lg font-bold text-neutral-900">Links-Seite</h2>
+            <a href="/links" target="_blank" rel="noopener noreferrer" className="text-sm text-vtg-orange hover:underline">
+              Seite ansehen ↗
+            </a>
+          </div>
+          <p className="mb-6 max-w-2xl text-sm text-neutral-600">
+            Jeder Eintrag besteht aus einer Bezeichnung, einer URL und optional einer kurzen Beschreibung.
+            Einträge mit der gleichen Kategorie werden auf der Seite gemeinsam dargestellt; eine neue Kategorie
+            erscheint automatisch als eigener Abschnitt am Ende der Seite.
+          </p>
+
+          <h3 className="mb-3 font-heading text-base font-bold text-neutral-900">Neuen Link hinzufügen</h3>
+          <form
+            action="/api/links/add"
+            method="POST"
+            className="mb-10 flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-4"
+          >
+            <div>
+              <label htmlFor="new-category" className="mb-1 block text-sm font-medium text-neutral-800">
+                Kategorie
+              </label>
+              <input
+                id="new-category"
+                name="category"
+                list="category-options"
+                placeholder="z. B. Behörden und Institutionen (Rheinland-Pfalz)"
+                required
+                className={inputClass}
+              />
+              <datalist id="category-options">
+                {linkCategoryNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+            <div>
+              <label htmlFor="new-label" className="mb-1 block text-sm font-medium text-neutral-800">
+                Bezeichnung
+              </label>
+              <input id="new-label" name="label" required className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="new-href" className="mb-1 block text-sm font-medium text-neutral-800">
+                URL
+              </label>
+              <input id="new-href" name="href" type="url" placeholder="https://..." required className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="new-description" className="mb-1 block text-sm font-medium text-neutral-800">
+                Beschreibung (optional)
+              </label>
+              <input id="new-description" name="description" className={inputClass} />
+            </div>
+            <button type="submit" className={`mt-2 self-start ${primaryButtonClass}`}>
+              Hinzufügen
+            </button>
+          </form>
+
+          {linkCategories.length > 0 ? (
+            <div className="flex flex-col gap-10">
+              {linkCategories.map((cat) => (
+                <div key={cat.title}>
+                  <h3 className="mb-3 font-heading text-base font-bold text-neutral-900">{cat.title}</h3>
+                  <div className="flex flex-col gap-3">
+                    {cat.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start justify-between gap-4 rounded-lg border border-neutral-200 bg-white p-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-neutral-900">{item.label}</p>
+                          <a
+                            href={item.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block truncate text-sm text-vtg-orange hover:underline"
+                          >
+                            {item.href}
+                          </a>
+                          {item.description && (
+                            <p className="mt-1 text-sm text-neutral-600">{item.description}</p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-4">
+                          <Link
+                            href={`/admin/links/${item.id}/bearbeiten`}
+                            className="text-sm text-vtg-orange hover:underline"
+                          >
+                            Bearbeiten
+                          </Link>
+                          <form action="/api/links/delete" method="POST">
+                            <input type="hidden" name="id" value={item.id} />
+                            <button type="submit" className="text-sm text-red-600 hover:underline">
+                              Löschen
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-base leading-relaxed text-neutral-700">Es sind noch keine Links hinterlegt.</p>
           )}
         </>
       ) : tab === "analytics" ? (
