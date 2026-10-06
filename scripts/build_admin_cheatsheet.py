@@ -181,7 +181,7 @@ def build():
     story.append(Paragraph(
         "VTG Rheinland-Pfalz &middot; Zugriff: Anmeldung unter <font face='Courier'>/login</font> mit "
         "Admin-Zugang, danach oben rechts auf &bdquo;Admin-Dashboard&ldquo; &rarr; "
-        "<font face='Courier'>/admin</font>. Die 6 Bereiche sind als Reiter oben im Dashboard wählbar "
+        "<font face='Courier'>/admin</font>. Die 7 Bereiche sind als Reiter oben im Dashboard wählbar "
         "(URL-Parameter <font face='Courier'>?tab=...</font>).",
         subtitle_style,
     ))
@@ -342,9 +342,24 @@ def build():
         screenshot_file="admin-5-seiteninhalte.png",
     ))
 
-    # --- 6. Analytics ---
+    # --- 6. Links-Seite ---
     story.append(section(
-        "6", "Analytics", "/admin?tab=analytics",
+        "6", "Links-Seite", "/admin?tab=links",
+        "Öffentliche Linksammlung (Texte mit hinterlegter URL) nach Kategorien pflegen.",
+        [
+            "Neuen Link hinzufügen: Kategorie (frei wählbar oder bestehende per Vorschlagsliste übernehmen), Bezeichnung, URL und optionale Beschreibung",
+            "Bestehenden Link bearbeiten (alle Felder) oder löschen",
+            "Links erscheinen gruppiert nach Kategorie in der Reihenfolge ihres ersten Auftretens",
+        ],
+        [
+            "<font face='Courier'>/links</font> (öffentlich, über „Links“ im Hauptmenü).",
+        ],
+        screenshot_file="admin-6-links.png",
+    ))
+
+    # --- 7. Analytics ---
+    story.append(section(
+        "7", "Analytics", "/admin?tab=analytics",
         "Reiner Lesebereich &ndash; hier wird nichts bearbeitet, nur ausgewertet.",
         [
             "Übersicht: Logins und Downloads je Benutzer seit Einführung des Trackings",
@@ -355,7 +370,7 @@ def build():
         ],
         note="Rein statische Datei-Links ohne eigene API-Route (z. B. das TG-Einzeldaten-ZIP) "
              "lassen sich technisch nicht einzelnen Nutzern zuordnen und erscheinen hier nicht.",
-        screenshot_file="admin-6-analytics.png",
+        screenshot_file="admin-7-analytics.png",
     ))
 
     # --- Fussnote BC ---

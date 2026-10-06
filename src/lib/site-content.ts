@@ -82,7 +82,7 @@ const DEFAULT_ENTRIES: Record<SiteContentSlug, SiteContentEntry> = {
 - Information und Weiterbildungsangebote
 - Dialog mit Politik und Verbänden
 
-Sitz und Geschäftsstelle des VTG ist in 67433 Neustadt/Weinstrasse, Exterstrasse 4. Bei den Dienstleistungszentren Ländlicher Raum (DLR) in Bernkastel-Kues, Kaiserslautern, Mayen, Neustadt, Simmern und Montabaur sind Aussenstellen des VTG eingerichtet. Die DLR in Bitburg und Trier werden von der Aussenstelle Prüm und das DLR in Bad Kreuznach von der Aussenstelle in Simmern aus mitbetreut.`,
+Sitz und Geschäftsstelle des VTG ist in 67433 Neustadt/Weinstrasse, Roßlaufstraße 17. Bei den Dienstleistungszentren Ländlicher Raum (DLR) in Bernkastel-Kues, Kaiserslautern, Mayen, Neustadt, Simmern und Montabaur sind Aussenstellen des VTG eingerichtet. Die DLR in Bitburg und Trier werden von der Aussenstelle Prüm und das DLR in Bad Kreuznach von der Aussenstelle in Simmern aus mitbetreut.`,
     updatedAt: SEED_DATE,
   },
   praesident: {
