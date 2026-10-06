@@ -95,7 +95,21 @@ export default function PersonCard({ person }: { person: Person }) {
         <p className="font-heading font-bold text-neutral-900">{person.name}</p>
         <p className="text-sm text-neutral-600">{person.role}</p>
         <div className="mt-2 space-y-1 text-sm text-neutral-700">
-          {person.address && <p>{person.address}</p>}
+          {person.address &&
+            (() => {
+              // Zweizeilig wie auf der Geschaeftsstelle-Seite (Strasse /
+              // PLZ Ort), statt einzeilig mit Komma — siehe Nacharbeiten-PDF
+              // Punkt 7. Adressen in personen.ts folgen durchgaengig dem
+              // Format "Strasse Nr., PLZ Ort", daher reicht ein Split am
+              // ersten Komma.
+              const [strasse, ort] = person.address.split(/,\s*/);
+              return (
+                <>
+                  <p>{strasse}</p>
+                  {ort && <p>{ort}</p>}
+                </>
+              );
+            })()}
           {person.phone && (
             <p className="flex items-center gap-1.5">
               <PhoneIcon /> {person.phone}

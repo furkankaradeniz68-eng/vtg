@@ -33,7 +33,7 @@ export default function Footer({ portalMode = false }: { portalMode?: boolean })
             <p className="mt-4 text-sm text-neutral-600">
               Verband der Teilnehmergemeinschaften Rheinland-Pfalz.
               <br />
-              Körperschaft des öffentliche Rechts.
+              Körperschaft des öffentlichen Rechts.
             </p>
           </div>
 
@@ -67,7 +67,7 @@ export default function Footer({ portalMode = false }: { portalMode?: boolean })
         <div className="flex flex-col items-center justify-between gap-4 py-8 text-sm text-neutral-500 sm:flex-row">
           <p>
             Copyright © {year} Verband der Teilnehmergemeinschaften
-            Rheinland-Pfalz. Körperschaft des öffentliche Rechts.
+            Rheinland-Pfalz. Körperschaft des öffentlichen Rechts.
           </p>
           <ul className="flex flex-wrap items-center gap-3">
             {legalLinks.map((item, i) => (

@@ -47,7 +47,7 @@ const categories: Category[] = [
       },
       {
         label: "www.dlr.rlp.de",
-        href: "https://www.dlr.rlp.de/",
+        href: "https://www.dlr.rlp.de/Internet/global/inetcntr.nsf/dlr_web_full.xsp?src=KX857Y6F05&p1=452N431O1U&p3=QK595PD880&p4=78HV82A9P5",
         description:
           "Homepage der DLR Rheinland-Pfalz. Viel Nützliches rund um den Ländlichen Raum und die Landwirtschaft.",
       },
@@ -57,10 +57,10 @@ const categories: Category[] = [
         description: "Homepage des Landes Rheinland-Pfalz.",
       },
       {
-        label: "www.mwvlw.rlp.de",
-        href: "https://www.mwvlw.rlp.de/",
+        label: "www.mlwuf.rlp.de",
+        href: "https://mlwuf.rlp.de/",
         description:
-          "Homepage des Ministeriums für Umwelt, Landwirtschaft, Ernährung, Weinbau und Forsten Rheinland-Pfalz.",
+          "Homepage des Ministeriums für Landwirtschaft, Weinbau, Umwelt und Forsten Rheinland-Pfalz.",
       },
       {
         label: "www.eler-eulle.rlp.de",

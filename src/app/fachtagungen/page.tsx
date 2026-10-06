@@ -13,7 +13,7 @@ export default async function FachtagungenPage() {
       <PageHero title="Fachtagungen" subtitle="Dokumentationen vergangener Fachtagungen des VTG." />
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <p className="mb-8 text-base leading-relaxed text-neutral-700">
-          Hier finden Sie alle wichtigen Dokumente zum runter laden.
+          Hier finden Sie alle wichtigen Dokumente zum Herunterladen.
         </p>
         <DownloadList
           items={entries.map((e) => ({ title: e.title, description: e.description, href: e.url }))}

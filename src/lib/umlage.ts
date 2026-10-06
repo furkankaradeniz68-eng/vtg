@@ -22,10 +22,23 @@ const DEFAULT_ROWS: UmlageRow[] = [
   { id: "seed-2019", year: 2019, percent: "10,5%", updatedAt: SEED_DATE },
   { id: "seed-2020", year: 2020, percent: "12,6%", updatedAt: SEED_DATE },
   { id: "seed-2021", year: 2021, percent: "12,6%", updatedAt: SEED_DATE },
-  { id: "seed-2022", year: 2022, percent: "13%", updatedAt: SEED_DATE },
-  { id: "seed-2023", year: 2023, percent: "13%", updatedAt: SEED_DATE },
-  { id: "seed-2024", year: 2024, percent: "13%", updatedAt: SEED_DATE },
+  { id: "seed-2022", year: 2022, percent: "13,0%", updatedAt: SEED_DATE },
+  { id: "seed-2023", year: 2023, percent: "13,0%", updatedAt: SEED_DATE },
+  { id: "seed-2024", year: 2024, percent: "13,0%", updatedAt: SEED_DATE },
 ];
+
+// Punkt 12 (Nacharbeiten-PDF): "percent" ist freier Text (Admins tippen z.B.
+// "13%" oder "13,0%" oder "13.0%" ein) — ohne Normalisierung wirkt die
+// oeffentliche Tabelle uneinheitlich. Diese Funktion parst den gespeicherten
+// String robust (Komma/Punkt, mit/ohne %-Zeichen) und formatiert ihn beim
+// Anzeigen einheitlich mit einer Nachkommastelle im deutschen Format. Der
+// gespeicherte Wert selbst bleibt unveraendert, damit das Bearbeiten-
+// Formular weiterhin exakt zeigt, was zuletzt eingetragen wurde.
+export function formatUmlageProzent(percent: string): string {
+  const zahl = Number(percent.replace("%", "").trim().replace(",", "."));
+  if (Number.isNaN(zahl)) return percent;
+  return `${zahl.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
 
 // Keine Modul-weite Zwischenspeicherung, siehe public-downloads.ts: diese
 // Metadaten werden von der Anwendung selbst laufend veraendert.

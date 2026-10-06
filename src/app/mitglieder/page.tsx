@@ -43,7 +43,15 @@ export default function MitgliederPage() {
             Mitgliederkarte erhalten Sie mehr Informationen zu den einzelnen
             Verfahren. Die Umringsgrenzen der Flurbereinigungsverfahren sowie
             die Informationen zu Art und Stand der Flurbereinigungsverfahren
-            werden zu bestimmten Stichzeitpunkten der Homepage www.dlr.rlp.de
+            werden zu bestimmten Stichzeitpunkten der Homepage{" "}
+            <a
+              href="https://www.dlr.rlp.de/Internet/global/inetcntr.nsf/dlr_web_full.xsp?src=KX857Y6F05&p1=452N431O1U&p3=QK595PD880&p4=78HV82A9P5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-vtg-orange hover:underline"
+            >
+              www.dlr.rlp.de
+            </a>{" "}
             entnommen. Für aktuelle Daten besuchen Sie bitte direkt diese
             Internetseite.
           </p>

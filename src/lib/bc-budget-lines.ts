@@ -139,14 +139,29 @@ export async function findeFinanzKategorie(
   // Laufzeit: kumulierter Saldo (balance) vs. Laufzeitbudget (termBudget).
   // Haushaltsjahr: nur der Anteil des laufenden Jahres (balance minus
   // Vorjahresuebertrag) vs. Jahresprogramm (annualBudget).
+  //
+  // Vorzeichen-Korrektur fuer Einnahmen: BC fuehrt Ertragskonten (alle "8"-
+  // Konten) auf der Haben-Seite, ihr Saldo kommt aus der OData-Schnittstelle
+  // daher naturgemaess negativ. Ausfuehrungskosten (Aufwand, Soll-Konten)
+  // sind davon nicht betroffen und bleiben unveraendert. Siehe Nacharbeiten-
+  // PDF Punkt 4/9: "Einnahmen im Minus" trotz korrekter Betraege.
+  const vorzeichenFaktor = slug === "einnahmen" ? -1 : 1;
   const werte = (row: BcBudgetLine): { ausgaben: number; plan: number } =>
     ansicht === "laufzeit"
-      ? { ausgaben: row.balance, plan: row.termBudget }
-      : { ausgaben: row.balance - row.carryOverPrevYear, plan: row.annualBudget };
+      ? { ausgaben: vorzeichenFaktor * row.balance, plan: vorzeichenFaktor * row.termBudget }
+      : {
+          ausgaben: vorzeichenFaktor * (row.balance - row.carryOverPrevYear),
+          plan: vorzeichenFaktor * row.annualBudget,
+        };
 
+  // Punkt 10 (Nacharbeiten-PDF): Einnahmen-Konten (811xx-891xx) sollen
+  // 2-stellig gruppiert werden (81, 82, ... statt 811, 812, ...) — bei
+  // Ausfuehrungskosten/Sonstige Ausfuehrungskosten bleibt die bisherige
+  // 3-stellige Gruppierung.
+  const gruppenStellen = slug === "einnahmen" ? 2 : 3;
   const gruppen = new Map<string, BcBudgetLine[]>();
   for (const row of aktuelleRows) {
-    const gruppenSchluessel = row.glAccountNo.slice(0, 3);
+    const gruppenSchluessel = row.glAccountNo.slice(0, gruppenStellen);
     const list = gruppen.get(gruppenSchluessel);
     if (list) list.push(row);
     else gruppen.set(gruppenSchluessel, [row]);
@@ -173,6 +188,24 @@ export async function findeFinanzKategorie(
   }
 
   zeilen.push({ konto: "Gesamtsumme", ausgaben: gesamtAusgaben, plan: gesamtPlan, typ: "gesamt" });
+
+  // Punkt 11 (Nacharbeiten-PDF): A1-Download fehlte der untere Soll-Ist-
+  // Vergleich. Nur die zwei Zeilen, die sich zuverlaessig aus vorhandenen
+  // BC-Feldern ableiten lassen, werden ergaenzt — "Summe BD (8.3)" bleibt
+  // aussen vor, da die dafuer noetige BC-Dimension noch mit Umut/
+  // Buchhaltung geklaert werden muss (gleiche offene Frage wie bei
+  // getFinanzUebersichtKennzahlen). Plan = Ausgaben, da es fuer diese
+  // abgeleiteten Zeilen keinen eigenen Plan-Wert in BC gibt — so zeigt die
+  // Differenz-Spalte neutral 0,00 statt eines erfundenen Werts.
+  if (slug === "ausfuehrungskosten-a1") {
+    const nichtZuwendungsfaehig =
+      ansicht === "laufzeit"
+        ? aktuelleRows.reduce((summe, row) => summe + row.notEligibleFinYear, 0)
+        : aktuelleRows.reduce((summe, row) => summe + (row.notEligibleFinYear - row.notEligiblePrevYear), 0);
+    const zuwendungsfaehig = gesamtAusgaben - nichtZuwendungsfaehig;
+    zeilen.push({ konto: "Nicht zuwendungsfähige AK (Plan)", ausgaben: nichtZuwendungsfaehig, plan: nichtZuwendungsfaehig, typ: "gesamt" });
+    zeilen.push({ konto: "Zuwendungsfähige AK", ausgaben: zuwendungsfaehig, plan: zuwendungsfaehig, typ: "gesamt" });
+  }
 
   const info = KATEGORIE_INFO[slug];
   return { slug, titel: info.titel, suffix: info.suffix, zeilen };

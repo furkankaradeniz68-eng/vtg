@@ -14,17 +14,17 @@ type Sektion = { gruppe: FinanzZeile; kinder: FinanzZeile[] };
 
 function gruppiere(zeilen: readonly FinanzZeile[]) {
   const sektionen: Sektion[] = [];
-  let gesamt: FinanzZeile | null = null;
+  const gesamtZeilen: FinanzZeile[] = [];
   for (const zeile of zeilen) {
     if (zeile.typ === "gruppe") {
       sektionen.push({ gruppe: zeile, kinder: [] });
     } else if (zeile.typ === "gesamt") {
-      gesamt = zeile;
+      gesamtZeilen.push(zeile);
     } else if (sektionen.length > 0) {
       sektionen[sektionen.length - 1].kinder.push(zeile);
     }
   }
-  return { sektionen, gesamt };
+  return { sektionen, gesamtZeilen };
 }
 
 export default function FinanzberichtTabelle({
@@ -35,7 +35,7 @@ export default function FinanzberichtTabelle({
   zeilen: readonly FinanzZeile[];
 }) {
   const [offen, setOffen] = useState<Set<number>>(new Set());
-  const { sektionen, gesamt } = gruppiere(zeilen);
+  const { sektionen, gesamtZeilen } = gruppiere(zeilen);
 
   function toggle(index: number) {
     setOffen((prev) => {
@@ -93,14 +93,14 @@ export default function FinanzberichtTabelle({
               </Fragment>
             );
           })}
-          {gesamt && (
-            <tr className="bg-vtg-yellow font-medium text-neutral-900">
+          {gesamtZeilen.map((gesamt, i) => (
+            <tr key={i} className="bg-vtg-yellow font-medium text-neutral-900">
               <td className="p-3">{gesamt.konto}</td>
               <td className="p-3 text-right">{formatEuro(gesamt.ausgaben)}</td>
               <td className="p-3 text-right">{formatEuro(gesamt.plan)}</td>
               <td className="p-3 text-right">{formatEuro(gesamt.plan - gesamt.ausgaben)}</td>
             </tr>
-          )}
+          ))}
         </tbody>
       </table>
     </div>

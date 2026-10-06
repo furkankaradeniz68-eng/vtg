@@ -12,7 +12,7 @@ export default async function SonstigesPage() {
       <PageHero title="Sonstiges" />
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <p className="text-base leading-relaxed text-neutral-700">
-          Hier finden Sie alle wichtigen Dokumente zum runter laden.
+          Hier finden Sie alle wichtigen Dokumente zum Herunterladen.
         </p>
 
         <div className="mt-8 flex flex-col divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">

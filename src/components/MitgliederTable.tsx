@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { mitglieder, type Mitglied } from "@/lib/mitglieder";
+import { mitglieder, DLR_URLS, type Mitglied } from "@/lib/mitglieder";
 
 type SortKey = keyof Mitglied;
 type SortDir = "asc" | "desc";
@@ -146,7 +146,20 @@ export default function MitgliederTable() {
               <tr key={m.nr} className="border-b border-neutral-100">
                 <td className="p-3 text-neutral-600">{m.nr}</td>
                 <td className="p-3 text-neutral-900">{m.name}</td>
-                <td className="p-3 text-neutral-600">{m.dlr}</td>
+                <td className="p-3 text-neutral-600">
+                  {DLR_URLS[m.dlr] ? (
+                    <a
+                      href={DLR_URLS[m.dlr]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-vtg-orange hover:underline"
+                    >
+                      {m.dlr}
+                    </a>
+                  ) : (
+                    m.dlr
+                  )}
+                </td>
                 <td className="p-3 text-neutral-600">{m.dienstsitz}</td>
               </tr>
             ))}

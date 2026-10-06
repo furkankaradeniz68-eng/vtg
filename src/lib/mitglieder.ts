@@ -5,6 +5,18 @@ export type Mitglied = {
   dienstsitz: string;
 };
 
+// Punkt 8 (Nacharbeiten-PDF): "zustaendiges DLR" auf der Mitglieder-Seite war
+// bisher reiner Text ohne Link. URLs sind die offiziellen Webseiten der 6
+// Dienstleistungszentren Laendlicher Raum RLP (geprueft/erreichbar).
+export const DLR_URLS: Record<string, string> = {
+  "DLR Mosel": "https://www.dlr-mosel.rlp.de/",
+  "DLR Eifel": "https://www.dlr-eifel.rlp.de/",
+  "DLR Rheinhessen-Nahe-Hunsrück": "https://www.dlr-rnh.rlp.de/",
+  "DLR Rheinpfalz": "https://www.dlr-rheinpfalz.rlp.de/",
+  "DLR Westerwald-Osteifel": "https://www.dlr-westerwald-osteifel.rlp.de/",
+  "DLR Westpfalz": "https://www.dlr-westpfalz.rlp.de/",
+};
+
 export const mitglieder: Mitglied[] = [
   { nr: "11001", name: "Ürzig (Würzgarten)", dlr: "DLR Mosel", dienstsitz: "Bernkastel-Kues" },
   { nr: "11003", name: "Graach (Himmelreich)", dlr: "DLR Mosel", dienstsitz: "Bernkastel-Kues" },

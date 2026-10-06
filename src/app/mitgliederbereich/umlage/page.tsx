@@ -3,7 +3,7 @@ import PageHero from "@/components/PageHero";
 import SimpleTable from "@/components/SimpleTable";
 import { requireSession } from "@/lib/auth";
 import { getSiteContent, parseContentBlocks } from "@/lib/site-content";
-import { getUmlageRows } from "@/lib/umlage";
+import { formatUmlageProzent, getUmlageRows } from "@/lib/umlage";
 
 export const metadata: Metadata = { title: "Umlage | VTG Rheinland-Pfalz" };
 
@@ -17,7 +17,11 @@ export default async function UmlagePage() {
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
           <div className="lg:w-72 lg:shrink-0">
-            <SimpleTable columns={["Jahr", "Prozent"]} rows={rows.map((r) => [r.year, r.percent])} />
+            <SimpleTable
+              columns={["Jahr", "Prozent"]}
+              rows={rows.map((r) => [r.year, formatUmlageProzent(r.percent)])}
+              compact
+            />
           </div>
           <div>
             <h2 className="mb-4 font-heading text-2xl font-bold text-neutral-900">
