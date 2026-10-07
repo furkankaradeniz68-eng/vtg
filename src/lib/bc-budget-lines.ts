@@ -7,14 +7,17 @@
 //   Ausfuehrungskosten/A1        -> 411xxx - 416xxx
 //   Sonstige Ausfuehrungskosten/A2 -> 422xx - 425xx
 //   Einnahmen                    -> alle Konten, die mit "8" beginnen (811xx-891xx)
-// Die Bilanzkonten (0730-1890) fuer die Finanzuebersicht-Kennzahlen
-// (Kontostand/Forderungen/Vermoegen) sind NICHT Teil der von BC gelieferten
-// Feldspezifikation (Feldmapping.md hat dafuer keine eigene Entity, obwohl das
-// urspruengliche Anforderungsdokument eine separate "Finanzuebersicht-
-// Kennzahlen"-Tabelle vorsah). Kontostand/Forderungen/Vermoegen unten sind
-// daher ein bestmoeglicher Ableitungsversuch aus den Bilanzkonten und sollten
-// mit der Buchhaltung (Umut/BC-Entwicklung) validiert werden, bevor sie
-// produktiv angezeigt werden.
+// Die Bilanzkonten-Formel fuer die Finanzuebersicht-Kennzahlen (Kontostand/
+// Forderungen-Verbindlichkeiten/Vermoegen der TG) wurde am 2026-10-07 von
+// Furkan mit dem Kunden vor Ort validiert und verbindlich festgelegt
+// (ersetzt den bisherigen Ableitungsversuch aus BILANZKONTEN-Summe):
+//   Kontostand                     = Saldo(1200)
+//   Forderungen/Verbindlichkeiten  = Saldo(1400) + Saldo(1590)
+//   Forderungen/Verbindlichkeiten BD = Saldo(1591)
+//   Vermoegen der TG               = Kontostand + Forderungen/Verbindlichkeiten
+//                                     + Forderungen/Verbindlichkeiten BD
+// Konto 1591 ("BD") ist ein normales Sachkonto aus demselben vtgBudgetLines-
+// Snapshot wie alle anderen Konten hier (kein Extra-Sync noetig).
 import { get } from "@vercel/blob";
 import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 import { BUDGET_LINES_PATHNAME } from "@/lib/bc-sync";
@@ -229,8 +232,6 @@ export type FinanzUebersichtKennzahlen = {
   vermoegenDerTG: number;
 };
 
-const BILANZKONTEN = ["0730", "0800", "1000", "1200", "1360", "1400", "1500", "1590", "1600", "1800", "1890"];
-
 export async function getFinanzUebersichtKennzahlen(
   nr: string,
   vorgeladeneRows?: BcBudgetLine[],
@@ -243,16 +244,14 @@ export async function getFinanzUebersichtKennzahlen(
     aktuelleRows.filter((r) => r.glAccountNo === konto).reduce((sum, r) => sum + r.balance, 0);
 
   const kontostand = saldoVon("1200");
-  const forderungenVerbindlichkeiten = saldoVon("1400") - saldoVon("1600");
-  const vermoegenDerTG = BILANZKONTEN.reduce((sum, konto) => sum + saldoVon(konto), 0);
+  const forderungenVerbindlichkeiten = saldoVon("1400") + saldoVon("1590");
+  const forderungenVerbindlichkeitenBD = saldoVon("1591");
+  const vermoegenDerTG = kontostand + forderungenVerbindlichkeiten + forderungenVerbindlichkeitenBD;
 
   return {
     kontostand,
     forderungenVerbindlichkeiten,
-    // "BD" ist in der BC-Feldspezifikation nicht erklaert und laesst sich aus
-    // der reinen Sachkonto-Liste nicht sicher ableiten — vorlaeufig 0, bis
-    // BC-Entwicklung (Umut) das Konto/die Dimension dafuer benennt.
-    forderungenVerbindlichkeitenBD: 0,
+    forderungenVerbindlichkeitenBD,
     vermoegenDerTG,
   };
 }
