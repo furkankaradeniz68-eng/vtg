@@ -223,13 +223,14 @@ export async function findeFinanzKategorie(
 //
 // Bewusst eine EIGENE Funktion neben findeFinanzKategorie() — nicht als
 // Ersatz: findeFinanzKategorie() bleibt unveraendert fuer die Finanzuebersicht
-// -Kachel (gesamtsummeFuerKategorie). Urspruenglich wurden Einnahmen hier
-// bewusst ROH/negativ gefuehrt (1:1 wie im alten Einnahmen.pdf: Gesamtsumme
-// = -6.244.360,56). Nach Kundenrueckmeldung (2026-10-07: "Bei Einnahmen in
-// der Finanzuebersicht muss das Minus weg... muss jedoch in der
-// Finanzuebersicht UND im Download positiv sein") gilt das nicht mehr: hier
-// wie dort wird fuer Einnahmen dieselbe Vorzeichen-Korrektur wie in
-// findeFinanzKategorie() angewendet (BC fuehrt Ertragskonten "8xxx" negativ).
+// -Kachel (gesamtsummeFuerKategorie), dort werden Einnahmen weiterhin positiv
+// angezeigt (Kundenwunsch 2026-10-07: "Bei Einnahmen in der Finanzuebersicht
+// muss das Minus weg"). Hier (Download-Seite UND daraus erzeugtes PDF) gilt
+// das NICHT: Einnahmen werden roh/negativ gefuehrt, 1:1 wie im alten
+// Einnahmen.pdf/vtg-rlp.de/?page_id=804 (Gesamtsumme = -6.244.360,56) —
+// Kundenwunsch (praezisiert 2026-10-07): "Es soll nur im Download/PDF minus
+// zeigen, bei der Live-Seite bleibt es positiv." Siehe vorzeichenFaktor weiter
+// unten (bewusst konstant 1, kein Dreher fuer Einnahmen).
 // ---------------------------------------------------------------------------
 
 export type FinanzDownloadSpalten = {
@@ -373,13 +374,17 @@ export async function findeFinanzDownloadKategorie(
   const kategorieRows = rowsImJahr.filter((r) => kategorieVonKonto(r.glAccountNo) === slug);
   const vollSpalten = slug === "ausfuehrungskosten-a1";
 
-  // Vorzeichen-Korrektur fuer Einnahmen (wie in findeFinanzKategorie): BC
-  // fuehrt Ertragskonten ("8xxx") auf der Haben-Seite, ihr Saldo kommt aus der
-  // OData-Schnittstelle daher naturgemaess negativ — Kundenwunsch ist, dass
-  // Einnahmen sowohl in der Finanzuebersicht als auch im Download positiv
-  // angezeigt werden (siehe Kommentar oben). Ausfuehrungskosten A1/A2 bleiben
-  // unveraendert.
-  const vorzeichenFaktor = slug === "einnahmen" ? -1 : 1;
+  // Vorzeichen-Korrektur NUR in der Finanzuebersicht (findeFinanzKategorie),
+  // NICHT im Download/PDF: BC fuehrt Ertragskonten ("8xxx") auf der
+  // Haben-Seite, ihr Saldo kommt aus der OData-Schnittstelle daher
+  // naturgemaess negativ. Die alte Live-Seite (vtg-rlp.de/?page_id=804 etc.)
+  // zeigt diesen rohen BC-Saldo unveraendert, d.h. Einnahmen erscheinen dort
+  // negativ — Kundenwunsch (2026-10-07, praezisiert): im Download/PDF soll
+  // das exakt wie im alten Export (roh/negativ) bleiben, nur die
+  // Finanzuebersicht-Kachel soll weiterhin positiv anzeigen. Deshalb hier
+  // KEIN Vorzeichen-Dreher fuer Einnahmen (Faktor immer 1), im Unterschied zu
+  // findeFinanzKategorie() oben.
+  const vorzeichenFaktor = 1;
   const ausgabenL = (row: BcBudgetLine) => vorzeichenFaktor * row.balance;
   const ausgabenHj = (row: BcBudgetLine) => vorzeichenFaktor * (row.balance - row.carryOverPrevYear);
   const planL = (row: BcBudgetLine) => vorzeichenFaktor * row.termBudget;
