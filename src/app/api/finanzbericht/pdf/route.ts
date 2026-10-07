@@ -42,7 +42,9 @@ export async function GET(request: Request) {
   }
 
   const kategorie = await findeFinanzDownloadKategorie(id, kategorieSlug);
-  const orientation = kategorieSlug === "ausfuehrungskosten-a1" ? "landscape" : "portrait";
+  // Ausfuehrungskosten A1 und A2 im Querformat (volle Soll-Ist-Spaltenbreite),
+  // Einnahmen im Hochformat (Kundenwunsch 2026-10-07).
+  const orientation = kategorieSlug === "einnahmen" ? "portrait" : "landscape";
 
   const pdfBytes = await generateFinanzberichtPdf({ verfahren, kategorie, orientation });
 
