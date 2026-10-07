@@ -214,6 +214,288 @@ export async function findeFinanzKategorie(
   return { slug, titel: info.titel, suffix: info.suffix, zeilen };
 }
 
+// ---------------------------------------------------------------------------
+// Download-Berichte (Ausfuehrungskosten A1/A2, Einnahmen) — 1:1-Nachbau der
+// alten vtg-rlp.de-Berichte (Soll-Ist-Vergleich mit Diff%, nicht zuwendungs-
+// faehiger AK und "Summe BD (8.3)"), fachlich am 2026-10-07 anhand der
+// Original-PDFs (Verfahren 11003 Graach/Himmelreich, vtg-rlp.de/?page_id=
+// 775/794/804) verifiziert und mit dem Kunden abgestimmt.
+//
+// Bewusst eine EIGENE Funktion neben findeFinanzKategorie() — nicht als
+// Ersatz: findeFinanzKategorie() bleibt unveraendert fuer die Finanzuebersicht
+// -Kachel (gesamtsummeFuerKategorie), die eine andere Vorzeichen-Konvention
+// braucht (Einnahmen dort positiv gedreht fuer die Kachel-Anzeige). Hier,
+// fuer die Downloads, werden Einnahmen bewusst ROH/negativ gefuehrt, genau
+// wie im Original (Einnahmen.pdf: Gesamtsumme = -6.244.360,56 / 227.848,90).
+// ---------------------------------------------------------------------------
+
+export type FinanzDownloadSpalten = {
+  ausgaben: number;
+  nichtZuFaehig: number | null;
+  plan: number | null;
+  diffEur: number | null;
+  diffProz: number | null;
+};
+
+export type FinanzDownloadZeile = {
+  konto: string;
+  typ?: "gruppe" | "gesamt" | "sonder";
+  laufzeit: FinanzDownloadSpalten;
+  haushaltsjahr: FinanzDownloadSpalten;
+};
+
+export type FinanzDownloadKategorie = {
+  slug: FinanzKategorieSlug;
+  titel: string;
+  suffix?: string;
+  // true = Ausfuehrungskosten A1 (volle 5-Spalten-Soll-Ist-Tabelle je Seite).
+  // false = A2/Einnahmen (nur der rohe Ausgaben-Betrag je Seite, kein Plan/
+  // Diff im Original vorhanden).
+  vollSpalten: boolean;
+  zeilen: FinanzDownloadZeile[];
+};
+
+function leereSpalten(ausgaben: number): FinanzDownloadSpalten {
+  return { ausgaben, nichtZuFaehig: null, plan: null, diffEur: null, diffProz: null };
+}
+
+function diffProzent(plan: number, diffEur: number): number {
+  return plan !== 0 ? (diffEur / plan) * 100 : 0;
+}
+
+// Haushaltsjahr-Diff%-Maskierung (vom Kunden am Original-PDF bestaetigt,
+// Foto-Annotation zu Ausführungskosten-A1.pdf): auf allen Zwischensummen-/
+// Positionszeilen wird ein positiver oder neutraler Prozentwert als "0,0"
+// ausgewiesen, ein negativer Wert bleibt sichtbar (z.B. "Summe 415: -0,6%").
+// Nur auf den beiden finalen Zeilen (Gesamtsumme, Zuwendungsfaehige AK) wird
+// immer der echte Wert gezeigt, auch wenn er positiv ist. Die Laufzeit-Seite
+// wird NIE maskiert (ruft diese Funktion also gar nicht auf).
+function maskiertesHaushaltsjahrProzent(diffProz: number): number {
+  return diffProz >= 0 ? 0 : diffProz;
+}
+
+export async function findeFinanzDownloadKategorie(
+  nr: string,
+  slug: FinanzKategorieSlug,
+  vorgeladeneRows?: BcBudgetLine[],
+): Promise<FinanzDownloadKategorie> {
+  const alleRows = vorgeladeneRows ?? (await getBudgetLinesForCompany(nr));
+  const jahr = jahrAusRows(alleRows);
+  const rowsImJahr = jahr ? alleRows.filter((r) => r.financialYear === jahr) : alleRows;
+
+  const kategorieRows = rowsImJahr.filter((r) => kategorieVonKonto(r.glAccountNo) === slug);
+  const vollSpalten = slug === "ausfuehrungskosten-a1";
+
+  // Rohwerte je Zeile, bewusst OHNE Vorzeichen-Korrektur (anders als
+  // findeFinanzKategorie): Downloads muessen 1:1 die alte Webseite abbilden.
+  const ausgabenL = (row: BcBudgetLine) => row.balance;
+  const ausgabenHj = (row: BcBudgetLine) => row.balance - row.carryOverPrevYear;
+  const planL = (row: BcBudgetLine) => row.termBudget;
+  const planHj = (row: BcBudgetLine) => row.annualBudget;
+  const nichtZuFaehigL = (row: BcBudgetLine) => row.notEligibleFinYear;
+  const nichtZuFaehigHj = (row: BcBudgetLine) => row.notEligibleFinYear - row.notEligiblePrevYear;
+
+  // Gruppierung: 3-stellig fuer A1/A2, 2-stellig fuer Einnahmen — mit
+  // Sonderfall Konto "9000" (Saldenuebernahme Sachkonten), das laut
+  // Original-PDF (Einnahmen.pdf) in die Gruppe "89" einsortiert wird statt
+  // in eine eigene Gruppe "90".
+  const gruppenSchluessel = (glAccountNo: string): string => {
+    if (slug === "einnahmen") {
+      if (glAccountNo.startsWith("9000")) return "89";
+      return glAccountNo.slice(0, 2);
+    }
+    return glAccountNo.slice(0, 3);
+  };
+
+  const gruppen = new Map<string, BcBudgetLine[]>();
+  for (const row of kategorieRows) {
+    const schluessel = gruppenSchluessel(row.glAccountNo);
+    const list = gruppen.get(schluessel);
+    if (list) list.push(row);
+    else gruppen.set(schluessel, [row]);
+  }
+
+  const zeilen: FinanzDownloadZeile[] = [];
+  let gesamtAusgabenL = 0;
+  let gesamtPlanL = 0;
+  let gesamtAusgabenHj = 0;
+  let gesamtPlanHj = 0;
+
+  for (const [schluessel, gruppenRows] of [...gruppen.entries()].sort()) {
+    let gL = 0;
+    let pL = 0;
+    let gHj = 0;
+    let pHj = 0;
+    const positionsZeilen: FinanzDownloadZeile[] = [];
+
+    for (const row of [...gruppenRows].sort((a, b) => a.glAccountNo.localeCompare(b.glAccountNo))) {
+      const aL = ausgabenL(row);
+      const aHj = ausgabenHj(row);
+      const plL = planL(row);
+      const plHj = planHj(row);
+      gL += aL;
+      pL += plL;
+      gHj += aHj;
+      pHj += plHj;
+
+      if (vollSpalten) {
+        const diffEurL = plL - aL;
+        const diffEurHj = plHj - aHj;
+        positionsZeilen.push({
+          konto: `${row.glAccountNo} ${row.glAccountName}`,
+          laufzeit: {
+            ausgaben: aL,
+            nichtZuFaehig: nichtZuFaehigL(row),
+            plan: plL,
+            diffEur: diffEurL,
+            diffProz: diffProzent(plL, diffEurL),
+          },
+          haushaltsjahr: {
+            ausgaben: aHj,
+            nichtZuFaehig: nichtZuFaehigHj(row),
+            plan: plHj,
+            diffEur: diffEurHj,
+            diffProz: maskiertesHaushaltsjahrProzent(diffProzent(plHj, diffEurHj)),
+          },
+        });
+      } else {
+        positionsZeilen.push({
+          konto: `${row.glAccountNo} ${row.glAccountName}`,
+          laufzeit: leereSpalten(aL),
+          haushaltsjahr: leereSpalten(aHj),
+        });
+      }
+    }
+
+    if (vollSpalten) {
+      const nzL = gruppenRows.reduce((summe, row) => summe + nichtZuFaehigL(row), 0);
+      const nzHj = gruppenRows.reduce((summe, row) => summe + nichtZuFaehigHj(row), 0);
+      const diffEurL = pL - gL;
+      const diffEurHj = pHj - gHj;
+      zeilen.push({
+        konto: `Summe ${schluessel}:`,
+        typ: "gruppe",
+        laufzeit: { ausgaben: gL, nichtZuFaehig: nzL, plan: pL, diffEur: diffEurL, diffProz: diffProzent(pL, diffEurL) },
+        haushaltsjahr: {
+          ausgaben: gHj,
+          nichtZuFaehig: nzHj,
+          plan: pHj,
+          diffEur: diffEurHj,
+          diffProz: maskiertesHaushaltsjahrProzent(diffProzent(pHj, diffEurHj)),
+        },
+      });
+    } else {
+      zeilen.push({ konto: `Summe ${schluessel}:`, typ: "gruppe", laufzeit: leereSpalten(gL), haushaltsjahr: leereSpalten(gHj) });
+    }
+    zeilen.push(...positionsZeilen);
+
+    gesamtAusgabenL += gL;
+    gesamtPlanL += pL;
+    gesamtAusgabenHj += gHj;
+    gesamtPlanHj += pHj;
+  }
+
+  if (vollSpalten) {
+    const gesamtNzL = kategorieRows.reduce((summe, row) => summe + nichtZuFaehigL(row), 0);
+    const gesamtNzHj = kategorieRows.reduce((summe, row) => summe + nichtZuFaehigHj(row), 0);
+    const gDiffEurL = gesamtPlanL - gesamtAusgabenL;
+    const gDiffEurHj = gesamtPlanHj - gesamtAusgabenHj;
+
+    zeilen.push({
+      konto: "Gesamtsumme",
+      typ: "gesamt",
+      laufzeit: {
+        ausgaben: gesamtAusgabenL,
+        nichtZuFaehig: gesamtNzL,
+        plan: gesamtPlanL,
+        diffEur: gDiffEurL,
+        diffProz: diffProzent(gesamtPlanL, gDiffEurL),
+      },
+      haushaltsjahr: {
+        ausgaben: gesamtAusgabenHj,
+        nichtZuFaehig: gesamtNzHj,
+        plan: gesamtPlanHj,
+        diffEur: gDiffEurHj,
+        diffProz: diffProzent(gesamtPlanHj, gDiffEurHj), // finale Zeile: NIE maskiert
+      },
+    });
+
+    // "Nicht zuwendungsfaehige AK (Plan)": nur Ausgaben + Diff(=0,00)
+    // sichtbar, FinPl/nicht-zu.fae/% bleiben leer (Original-PDF) — es gibt
+    // dafuer keinen eigenen Planwert in BC.
+    zeilen.push({
+      konto: "Nicht zuwendungsfähige AK (Plan)",
+      typ: "sonder",
+      laufzeit: { ausgaben: gesamtNzL, nichtZuFaehig: null, plan: null, diffEur: 0, diffProz: null },
+      haushaltsjahr: { ausgaben: gesamtNzHj, nichtZuFaehig: null, plan: null, diffEur: 0, diffProz: null },
+    });
+
+    // "Summe BD (8.3)": Saldo der Einnahmen-Gruppe 83xxx (vorzeichen-gedreht,
+    // da auf der Einnahmen-Seite roh negativ gefuehrt — siehe Einnahmen.pdf,
+    // Summe 83: -16.902,18 / 0,00), als Abzugsposten bei den Ausfuehrungs-
+    // kosten. FinPl/Jahresprogramm-Seite nach derselben Vorzeichen-Logik;
+    // Diff/% werden auf dieser Zeile im Original nicht ausgewiesen.
+    // Anmerkung: die FinPl/Jahresprog-Seite dieser Zeile liess sich nicht
+    // gegen eine zweite Quelle gegenpruefen (Einnahmen.pdf hat keine Budget-
+    // Spalten) — Annahme: gleiche Vorzeichen-Drehung wie beim Ausgaben-Wert.
+    const einnahmenRows = rowsImJahr.filter(
+      (row) => kategorieVonKonto(row.glAccountNo) === "einnahmen" && row.glAccountNo.startsWith("83"),
+    );
+    const bdAusgabenL = -einnahmenRows.reduce((summe, row) => summe + ausgabenL(row), 0);
+    const bdAusgabenHj = -einnahmenRows.reduce((summe, row) => summe + ausgabenHj(row), 0);
+    const bdPlanL = -einnahmenRows.reduce((summe, row) => summe + planL(row), 0);
+    const bdPlanHj = -einnahmenRows.reduce((summe, row) => summe + planHj(row), 0);
+    zeilen.push({
+      konto: "Summe BD (8.3)",
+      typ: "sonder",
+      laufzeit: { ausgaben: bdAusgabenL, nichtZuFaehig: null, plan: bdPlanL, diffEur: null, diffProz: null },
+      haushaltsjahr: { ausgaben: bdAusgabenHj, nichtZuFaehig: null, plan: bdPlanHj, diffEur: null, diffProz: null },
+    });
+
+    // "Zuwendungsfaehige AK" = Gesamtsumme − nicht zuwendungsfaehige AK − BD.
+    // Wichtig (am Original-PDF verifiziert, Verfahren 11003 — Ausgaben-Seite:
+    // 6.259.045,33 − 1.256,44 − 16.902,18 = 6.240.886,71; Plan-Seite:
+    // 7.005.350,00 − 0 − 9.462,00 = 6.995.888,00): auf der FinPl/
+    // Jahresprogramm-Seite traegt "nicht zuwendungsfaehig" NICHT bei (kein
+    // eigener Planwert in BC) — dort wird nur BD abgezogen. Auf der Ausgaben-
+    // Seite wird nicht-zu-fae. dagegen sehr wohl abgezogen.
+    const zAusgabenL = gesamtAusgabenL - gesamtNzL - bdAusgabenL;
+    const zAusgabenHj = gesamtAusgabenHj - gesamtNzHj - bdAusgabenHj;
+    const zPlanL = gesamtPlanL - bdPlanL;
+    const zPlanHj = gesamtPlanHj - bdPlanHj;
+    const zDiffEurL = zPlanL - zAusgabenL;
+    const zDiffEurHj = zPlanHj - zAusgabenHj;
+    zeilen.push({
+      konto: "Zuwendungsfähige AK",
+      typ: "gesamt",
+      laufzeit: {
+        ausgaben: zAusgabenL,
+        nichtZuFaehig: null,
+        plan: zPlanL,
+        diffEur: zDiffEurL,
+        diffProz: diffProzent(zPlanL, zDiffEurL),
+      },
+      haushaltsjahr: {
+        ausgaben: zAusgabenHj,
+        nichtZuFaehig: null,
+        plan: zPlanHj,
+        diffEur: zDiffEurHj,
+        diffProz: diffProzent(zPlanHj, zDiffEurHj), // finale Zeile: NIE maskiert
+      },
+    });
+  } else {
+    zeilen.push({
+      konto: "Gesamtsumme",
+      typ: "gesamt",
+      laufzeit: leereSpalten(gesamtAusgabenL),
+      haushaltsjahr: leereSpalten(gesamtAusgabenHj),
+    });
+  }
+
+  const info = KATEGORIE_INFO[slug];
+  return { slug, titel: info.titel, suffix: info.suffix, vollSpalten, zeilen };
+}
+
 export async function gesamtsummeFuerKategorie(
   nr: string,
   slug: FinanzKategorieSlug,

@@ -1,28 +1,42 @@
 // Erzeugt Finanzbericht-PDFs (Ausfuehrungskosten A1/A2, Einnahmen) bei
-// Bedarf/On-Demand direkt aus den aktuellen findeFinanzKategorie()-Daten —
-// denselben Zahlen, die die HTML-Berichtsseite fuer dasselbe Verfahren/
-// Kategorie/Ansicht anzeigt. Dadurch ist die PDF immer so aktuell wie der
-// letzte naechtliche BC-Sync, ohne eigene Vorberechnung/Cron-Job dafuer.
+// Bedarf/On-Demand direkt aus findeFinanzDownloadKategorie() — denselben
+// Zahlen, die die HTML-Berichtsseite fuer dasselbe Verfahren/Kategorie
+// anzeigt. Dadurch ist die PDF immer so aktuell wie der letzte naechtliche
+// BC-Sync, ohne eigene Vorberechnung/Cron-Job dafuer.
+//
+// Anders als die alte (bis 2026-10-07 gueltige) Version wird hier IMMER
+// Laufzeit und Haushaltsjahr nebeneinander auf einer Seite gezeigt — genau
+// wie im Original (vtg-rlp.de/?page_id=775/794/804) — und alle Gruppen sind
+// vollstaendig aufgeklappt (kein Akkordeon in der PDF, siehe Vorgabe: "Auf
+// der Webseite bleibt es aufklappbar nur auf der PDF muss alles natuerlich
+// aufgeklappt sein").
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import type { FinanzKategorie, FinanzAnsicht } from "@/lib/bc-budget-lines";
+import type { FinanzDownloadKategorie, FinanzDownloadZeile, FinanzDownloadSpalten } from "@/lib/bc-budget-lines";
 import type { Verfahren } from "@/lib/bc-companies";
 
-const PAGE_MARGIN = 40;
+const PAGE_MARGIN = 36;
 const A4_PORTRAIT: [number, number] = [595.28, 841.89];
 const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 
 function formatEuro(n: number): string {
-  return `${n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  return n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatEuroOrBlank(n: number | null): string {
+  return n === null ? "" : formatEuro(n);
+}
+
+function formatProzentOrBlank(n: number | null): string {
+  if (n === null) return "";
+  return n.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
 export async function generateFinanzberichtPdf(params: {
   verfahren: Verfahren;
-  kategorie: FinanzKategorie;
-  ansicht: FinanzAnsicht;
-  planLabel: string;
+  kategorie: FinanzDownloadKategorie;
   orientation: "portrait" | "landscape";
 }): Promise<Uint8Array> {
-  const { verfahren, kategorie, ansicht, planLabel, orientation } = params;
+  const { verfahren, kategorie, orientation } = params;
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -33,22 +47,58 @@ export async function generateFinanzberichtPdf(params: {
   let height = page.getHeight();
   let y = height - PAGE_MARGIN;
 
-  const ansichtLabel = ansicht === "laufzeit" ? "Laufzeit" : "Haushaltsjahr";
-  const titel = `${kategorie.titel}${kategorie.suffix ? `/${kategorie.suffix}` : ""} (${ansichtLabel})`;
+  const titel = `${kategorie.titel}${kategorie.suffix ? `/${kategorie.suffix}` : ""}`;
 
-  function drawText(
-    text: string,
-    x: number,
-    yPos: number,
-    opts: { size?: number; bold?: boolean } = {},
-  ) {
-    page.drawText(text, {
-      x,
-      y: yPos,
-      size: opts.size ?? 9,
-      font: opts.bold ? boldFont : font,
-      color: rgb(0.1, 0.1, 0.1),
+  // Je Ansicht-Block die sichtbaren Unterspalten — bei A2/Einnahmen nur der
+  // rohe Betrag (kein Plan/Diff im Original), bei A1 der volle Soll-Ist-Satz.
+  const vollSpalten = kategorie.vollSpalten;
+  type SpaltenKey = keyof FinanzDownloadSpalten;
+  const subCols: { key: SpaltenKey; label: (planLabel: string) => string }[] = vollSpalten
+    ? [
+        { key: "ausgaben", label: () => "Ausgaben" },
+        { key: "nichtZuFaehig", label: () => "nicht zu.fä." },
+        { key: "plan", label: (p) => p },
+        { key: "diffEur", label: () => "Diff EUR" },
+        { key: "diffProz", label: () => "Diff %" },
+      ]
+    : [{ key: "ausgaben", label: () => "Betrag" }];
+
+  const kontoSpalteBreite = vollSpalten ? 150 : 220;
+  const nutzbareBreite = width - 2 * PAGE_MARGIN - kontoSpalteBreite;
+  const spaltenAnzahl = subCols.length * 2;
+  const spaltenBreite = nutzbareBreite / spaltenAnzahl;
+  const kontoX = PAGE_MARGIN;
+  const laufzeitStartX = PAGE_MARGIN + kontoSpalteBreite;
+  const haushaltsjahrStartX = laufzeitStartX + subCols.length * spaltenBreite;
+
+  function subX(blockStartX: number, index: number): number {
+    return blockStartX + index * spaltenBreite + spaltenBreite - 4;
+  }
+
+  function drawText(text: string, x: number, yPos: number, opts: { size?: number; bold?: boolean; align?: "left" | "right" } = {}) {
+    const size = opts.size ?? 7.5;
+    const usedFont = opts.bold ? boldFont : font;
+    const drawX = opts.align === "right" ? x - usedFont.widthOfTextAtSize(text, size) : x;
+    page.drawText(text, { x: drawX, y: yPos, size, font: usedFont, color: rgb(0.1, 0.1, 0.1) });
+  }
+
+  function drawTableHeader() {
+    drawText("Laufzeit (FinPL)", laufzeitStartX, y, { bold: true, size: 9 });
+    drawText("Haushaltsjahr (Jahresprogramm)", haushaltsjahrStartX, y, { bold: true, size: 9 });
+    y -= 13;
+    drawText("Konto", kontoX, y, { bold: true });
+    for (let i = 0; i < subCols.length; i++) {
+      drawText(subCols[i].label(vollSpalten ? "FinPL" : ""), subX(laufzeitStartX, i), y, { bold: true, align: "right" });
+      drawText(subCols[i].label(vollSpalten ? "Jahresprog." : ""), subX(haushaltsjahrStartX, i), y, { bold: true, align: "right" });
+    }
+    y -= 6;
+    page.drawLine({
+      start: { x: PAGE_MARGIN, y },
+      end: { x: width - PAGE_MARGIN, y },
+      thickness: 0.5,
+      color: rgb(0.6, 0.6, 0.6),
     });
+    y -= 13;
   }
 
   function ensureSpace(rowHeight: number) {
@@ -61,70 +111,55 @@ export async function generateFinanzberichtPdf(params: {
     }
   }
 
-  const col1X = PAGE_MARGIN;
-  const col2X = width - PAGE_MARGIN - 330;
-  const col3X = width - PAGE_MARGIN - 220;
-  const col4X = width - PAGE_MARGIN - 110;
-
-  function drawTableHeader() {
-    drawText("Konto", col1X, y, { bold: true });
-    drawText("Ausgaben", col2X, y, { bold: true });
-    drawText(planLabel, col3X, y, { bold: true });
-    drawText("Differenz", col4X, y, { bold: true });
-    y -= 6;
-    page.drawLine({
-      start: { x: PAGE_MARGIN, y },
-      end: { x: width - PAGE_MARGIN, y },
-      thickness: 0.5,
-      color: rgb(0.6, 0.6, 0.6),
-    });
-    y -= 14;
-  }
-
-  function drawRow(konto: string, ausgaben: number, plan: number, opts: { bold?: boolean; fill?: boolean } = {}) {
-    ensureSpace(18);
+  function drawRow(zeile: FinanzDownloadZeile, opts: { bold?: boolean; fill?: boolean; indent?: boolean } = {}) {
+    ensureSpace(15);
     if (opts.fill) {
       page.drawRectangle({
-        x: PAGE_MARGIN - 4,
-        y: y - 4,
-        width: width - 2 * PAGE_MARGIN + 8,
-        height: 16,
+        x: PAGE_MARGIN - 3,
+        y: y - 3,
+        width: width - 2 * PAGE_MARGIN + 6,
+        height: 13,
         color: rgb(0.98, 0.82, 0.29),
       });
     }
-    const differenz = plan - ausgaben;
-    drawText(konto, col1X, y, { bold: opts.bold });
-    drawText(formatEuro(ausgaben), col2X, y, { bold: opts.bold });
-    drawText(formatEuro(plan), col3X, y, { bold: opts.bold });
-    drawText(formatEuro(differenz), col4X, y, { bold: opts.bold });
-    y -= 16;
+    drawText(opts.indent ? `  ${zeile.konto}` : zeile.konto, kontoX, y, { bold: opts.bold });
+    for (let i = 0; i < subCols.length; i++) {
+      const key = subCols[i].key;
+      const lWert = zeile.laufzeit[key];
+      const hjWert = zeile.haushaltsjahr[key];
+      const text = key === "diffProz" ? formatProzentOrBlank(lWert) : formatEuroOrBlank(lWert);
+      const hjText = key === "diffProz" ? formatProzentOrBlank(hjWert) : formatEuroOrBlank(hjWert);
+      drawText(text, subX(laufzeitStartX, i), y, { bold: opts.bold, align: "right" });
+      drawText(hjText, subX(haushaltsjahrStartX, i), y, { bold: opts.bold, align: "right" });
+    }
+    y -= 13;
   }
 
-  drawText(titel, PAGE_MARGIN, y, { size: 16, bold: true });
-  y -= 22;
-  drawText(`${verfahren.nr} ${verfahren.name}`, PAGE_MARGIN, y, { size: 11, bold: true });
-  drawText(`HJ: ${verfahren.hj}`, width - PAGE_MARGIN - 140, y, { size: 9 });
-  y -= 14;
-  drawText(`Stand: ${verfahren.stand}`, width - PAGE_MARGIN - 140, y, { size: 9 });
-  y -= 24;
+  drawText(titel, PAGE_MARGIN, y, { size: 15, bold: true });
+  y -= 20;
+  drawText(`${verfahren.nr} ${verfahren.name}`, PAGE_MARGIN, y, { size: 10, bold: true });
+  drawText(`HJ: ${verfahren.hj}`, width - PAGE_MARGIN - 140, y, { size: 8 });
+  y -= 12;
+  drawText(`Stand: ${verfahren.stand}`, width - PAGE_MARGIN - 140, y, { size: 8 });
+  y -= 18;
 
   drawTableHeader();
 
   for (const zeile of kategorie.zeilen) {
     if (zeile.typ === "gruppe") {
-      drawRow(zeile.konto, zeile.ausgaben, zeile.plan, { bold: true, fill: true });
-    } else if (zeile.typ === "gesamt") {
-      y -= 4;
-      ensureSpace(20);
+      drawRow(zeile, { bold: true, fill: true });
+    } else if (zeile.typ === "gesamt" || zeile.typ === "sonder") {
+      y -= 3;
+      ensureSpace(16);
       page.drawLine({
-        start: { x: PAGE_MARGIN, y: y + 12 },
-        end: { x: width - PAGE_MARGIN, y: y + 12 },
+        start: { x: PAGE_MARGIN, y: y + 10 },
+        end: { x: width - PAGE_MARGIN, y: y + 10 },
         thickness: 0.5,
         color: rgb(0.6, 0.6, 0.6),
       });
-      drawRow(zeile.konto, zeile.ausgaben, zeile.plan, { bold: true, fill: true });
+      drawRow(zeile, { bold: true, fill: true });
     } else {
-      drawRow(`   ${zeile.konto}`, zeile.ausgaben, zeile.plan);
+      drawRow(zeile, { indent: true });
     }
   }
 

@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth";
 import { findVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
 import {
-  findeFinanzKategorie,
+  findeFinanzDownloadKategorie,
   KATEGORIE_INFO,
-  type FinanzAnsicht,
   type FinanzKategorieSlug,
 } from "@/lib/bc-budget-lines";
 import { generateFinanzberichtPdf } from "@/lib/finanzbericht-pdf";
@@ -21,14 +20,12 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
   const kategorieSlug = url.searchParams.get("kategorie") as FinanzKategorieSlug | null;
-  const ansicht = url.searchParams.get("ansicht") as FinanzAnsicht | null;
 
-  if (
-    !id ||
-    !kategorieSlug ||
-    !GUELTIGE_SLUGS.includes(kategorieSlug) ||
-    (ansicht !== "laufzeit" && ansicht !== "haushaltsjahr")
-  ) {
+  // "ansicht" wird aus Kompatibilitaet mit bestehenden Download-Links noch
+  // akzeptiert, aber fuer den Inhalt nicht mehr gebraucht: die PDF zeigt seit
+  // der 1:1-Angleichung an vtg-rlp.de immer Laufzeit UND Haushaltsjahr
+  // nebeneinander (wie das Original), nicht mehr nur eine Ansicht.
+  if (!id || !kategorieSlug || !GUELTIGE_SLUGS.includes(kategorieSlug)) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
@@ -44,17 +41,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Verfahren nicht gefunden." }, { status: 404 });
   }
 
-  const kategorie = await findeFinanzKategorie(id, kategorieSlug, ansicht);
-  const planLabel = ansicht === "laufzeit" ? "FinPL" : "Jahresprogramm";
-  const orientation = kategorieSlug === "einnahmen" ? "portrait" : "landscape";
+  const kategorie = await findeFinanzDownloadKategorie(id, kategorieSlug);
+  const orientation = kategorieSlug === "ausfuehrungskosten-a1" ? "landscape" : "portrait";
 
-  const pdfBytes = await generateFinanzberichtPdf({ verfahren, kategorie, ansicht, planLabel, orientation });
+  const pdfBytes = await generateFinanzberichtPdf({ verfahren, kategorie, orientation });
 
   const info = KATEGORIE_INFO[kategorieSlug];
-  const dateiname = `${info.titel}${info.suffix ? `-${info.suffix}` : ""}-${ansicht}-${verfahren.nr}.pdf`.replace(
-    /\s+/g,
-    "_",
-  );
+  const dateiname = `${info.titel}${info.suffix ? `-${info.suffix}` : ""}-${verfahren.nr}.pdf`.replace(/\s+/g, "_");
 
   await recordEvent({ type: "download", username: session.username, role: session.role, label: dateiname });
 
