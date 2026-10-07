@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
+import VerfahrenKarte from "@/components/VerfahrenKarte";
 import { requireSession } from "@/lib/auth";
 import { findVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
 import { getKoordinaten } from "@/lib/verfahren-personendaten";
+import { getVerfahrenPolygon } from "@/lib/verfahren-polygone";
 
 export const metadata: Metadata = { title: "Verfahrensdaten | VTG Rheinland-Pfalz" };
 
@@ -17,7 +19,8 @@ export default async function VerfahrensdatenPage({
   const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
   const zugriffErlaubt = id ? await istVerfahrenErreichbar(session, id) : false;
   const verfahren = zugriffErlaubt && id ? await findVerfahren(id) : undefined;
-  const koordinaten = verfahren ? await getKoordinaten(verfahren.nr) : undefined;
+  const polygon = verfahren ? getVerfahrenPolygon(verfahren.nr) : undefined;
+  const koordinaten = verfahren && !polygon ? await getKoordinaten(verfahren.nr) : undefined;
   const showBackButton = session.role === "dlr" || session.role === "admin";
 
   return (
@@ -67,17 +70,21 @@ export default async function VerfahrensdatenPage({
               Zur Finanzübersicht
             </Link>
 
-            {koordinaten && (
-              <div className="mt-10 overflow-hidden rounded-lg border border-neutral-200">
-                <iframe
-                  title={`Standort ${verfahren.name}`}
-                  src={`https://maps.google.com/maps?q=${koordinaten.lat},${koordinaten.lng}&z=15&output=embed`}
-                  width="100%"
-                  height="400"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
+            {polygon ? (
+              <VerfahrenKarte polygon={polygon} />
+            ) : (
+              koordinaten && (
+                <div className="mt-10 overflow-hidden rounded-lg border border-neutral-200">
+                  <iframe
+                    title={`Standort ${verfahren.name}`}
+                    src={`https://maps.google.com/maps?q=${koordinaten.lat},${koordinaten.lng}&z=15&output=embed`}
+                    width="100%"
+                    height="400"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              )
             )}
           </>
         ) : id && !zugriffErlaubt ? (
