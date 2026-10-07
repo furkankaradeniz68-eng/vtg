@@ -328,39 +328,54 @@ export async function findeFinanzDownloadKategorie(
     let pHj = 0;
     const positionsZeilen: FinanzDownloadZeile[] = [];
 
-    for (const row of [...gruppenRows].sort((a, b) => a.glAccountNo.localeCompare(b.glAccountNo))) {
-      const aL = ausgabenL(row);
-      const aHj = ausgabenHj(row);
-      const plL = planL(row);
-      const plHj = planHj(row);
+    // Positionszeilen werden nach Kontonummer MINUS letzter Ziffer zusammen-
+    // gefasst (das letzte Zeichen ist der Teilbereich-Code: 1=AG, 2=D, 3=L,
+    // 4=W, 5=WD, 6=WS, 8=EU, 9=U) — exakt wie im Original (z.B. 412101..
+    // 412109 werden zu einer Zeile "41210"). Beschreibung = Text vor dem
+    // ersten "/" in glAccountName (am Original verifiziert anhand des
+    // Grenzfalls "Planierg./Rodung+Kultivier./AG" -> "Planierg."). Diff% wird
+    // auf dieser Ebene im Original nicht ausgewiesen (nur bei Summe-/
+    // Gesamtzeilen).
+    const positionsGruppen = new Map<string, BcBudgetLine[]>();
+    for (const row of gruppenRows) {
+      const posSchluessel = row.glAccountNo.length > 1 ? row.glAccountNo.slice(0, -1) : row.glAccountNo;
+      const list = positionsGruppen.get(posSchluessel);
+      if (list) list.push(row);
+      else positionsGruppen.set(posSchluessel, [row]);
+    }
+
+    for (const [posSchluessel, posRows] of [...positionsGruppen.entries()].sort()) {
+      let aL = 0;
+      let aHj = 0;
+      let plL = 0;
+      let plHj = 0;
+      let nzL = 0;
+      let nzHj = 0;
+      for (const row of posRows) {
+        aL += ausgabenL(row);
+        aHj += ausgabenHj(row);
+        plL += planL(row);
+        plHj += planHj(row);
+        nzL += nichtZuFaehigL(row);
+        nzHj += nichtZuFaehigHj(row);
+      }
       gL += aL;
       pL += plL;
       gHj += aHj;
       pHj += plHj;
 
+      const rohBeschreibung = posRows[0].glAccountName;
+      const beschreibung = (rohBeschreibung.split("/")[0] ?? rohBeschreibung).trim();
+
       if (vollSpalten) {
-        const diffEurL = plL - aL;
-        const diffEurHj = plHj - aHj;
         positionsZeilen.push({
-          konto: `${row.glAccountNo} ${row.glAccountName}`,
-          laufzeit: {
-            ausgaben: aL,
-            nichtZuFaehig: nichtZuFaehigL(row),
-            plan: plL,
-            diffEur: diffEurL,
-            diffProz: diffProzent(plL, diffEurL),
-          },
-          haushaltsjahr: {
-            ausgaben: aHj,
-            nichtZuFaehig: nichtZuFaehigHj(row),
-            plan: plHj,
-            diffEur: diffEurHj,
-            diffProz: maskiertesHaushaltsjahrProzent(diffProzent(plHj, diffEurHj)),
-          },
+          konto: `${posSchluessel} ${beschreibung}`,
+          laufzeit: { ausgaben: aL, nichtZuFaehig: nzL, plan: plL, diffEur: plL - aL, diffProz: null },
+          haushaltsjahr: { ausgaben: aHj, nichtZuFaehig: nzHj, plan: plHj, diffEur: plHj - aHj, diffProz: null },
         });
       } else {
         positionsZeilen.push({
-          konto: `${row.glAccountNo} ${row.glAccountName}`,
+          konto: `${posSchluessel} ${beschreibung}`,
           laufzeit: leereSpalten(aL),
           haushaltsjahr: leereSpalten(aHj),
         });
@@ -373,7 +388,7 @@ export async function findeFinanzDownloadKategorie(
       const diffEurL = pL - gL;
       const diffEurHj = pHj - gHj;
       zeilen.push({
-        konto: `Summe ${schluessel}:`,
+        konto: `Summe ${schluessel}`,
         typ: "gruppe",
         laufzeit: { ausgaben: gL, nichtZuFaehig: nzL, plan: pL, diffEur: diffEurL, diffProz: diffProzent(pL, diffEurL) },
         haushaltsjahr: {
@@ -385,7 +400,7 @@ export async function findeFinanzDownloadKategorie(
         },
       });
     } else {
-      zeilen.push({ konto: `Summe ${schluessel}:`, typ: "gruppe", laufzeit: leereSpalten(gL), haushaltsjahr: leereSpalten(gHj) });
+      zeilen.push({ konto: `Summe ${schluessel}`, typ: "gruppe", laufzeit: leereSpalten(gL), haushaltsjahr: leereSpalten(gHj) });
     }
     zeilen.push(...positionsZeilen);
 
@@ -430,21 +445,23 @@ export async function findeFinanzDownloadKategorie(
       haushaltsjahr: { ausgaben: gesamtNzHj, nichtZuFaehig: null, plan: null, diffEur: 0, diffProz: null },
     });
 
-    // "Summe BD (8.3)": Saldo der Einnahmen-Gruppe 83xxx (vorzeichen-gedreht,
-    // da auf der Einnahmen-Seite roh negativ gefuehrt — siehe Einnahmen.pdf,
-    // Summe 83: -16.902,18 / 0,00), als Abzugsposten bei den Ausfuehrungs-
-    // kosten. FinPl/Jahresprogramm-Seite nach derselben Vorzeichen-Logik;
-    // Diff/% werden auf dieser Zeile im Original nicht ausgewiesen.
-    // Anmerkung: die FinPl/Jahresprog-Seite dieser Zeile liess sich nicht
-    // gegen eine zweite Quelle gegenpruefen (Einnahmen.pdf hat keine Budget-
-    // Spalten) — Annahme: gleiche Vorzeichen-Drehung wie beim Ausgaben-Wert.
+    // "Summe BD (8.3)": Saldo der Einnahmen-Gruppe 83xxx, als Abzugsposten bei
+    // den Ausfuehrungskosten. Diff/% werden auf dieser Zeile im Original nicht
+    // ausgewiesen.
+    // Vorzeichen (am Original-PDF verifiziert, Verfahren 11003): der Ausgaben-
+    // Wert (balance-basiert) ist auf der Einnahmen-Seite roh negativ gefuehrt
+    // (siehe Einnahmen.pdf, Summe 83: -16.902,18) und muss daher gedreht
+    // werden (-> 16.902,18). Die Plan-Werte (termBudget/annualBudget) sind in
+    // BC dagegen bereits POSITIV gespeichert und duerfen NICHT gedreht werden
+    // (sonst: -9.462,00 statt korrekt 9.462,00 — verifiziert anhand des
+    // Original-PDFs: "Summe BD (8.3): 16.902,18 / 9.462,00 / 0,00 / 0,00").
     const einnahmenRows = rowsImJahr.filter(
       (row) => kategorieVonKonto(row.glAccountNo) === "einnahmen" && row.glAccountNo.startsWith("83"),
     );
     const bdAusgabenL = -einnahmenRows.reduce((summe, row) => summe + ausgabenL(row), 0);
     const bdAusgabenHj = -einnahmenRows.reduce((summe, row) => summe + ausgabenHj(row), 0);
-    const bdPlanL = -einnahmenRows.reduce((summe, row) => summe + planL(row), 0);
-    const bdPlanHj = -einnahmenRows.reduce((summe, row) => summe + planHj(row), 0);
+    const bdPlanL = einnahmenRows.reduce((summe, row) => summe + planL(row), 0);
+    const bdPlanHj = einnahmenRows.reduce((summe, row) => summe + planHj(row), 0);
     zeilen.push({
       konto: "Summe BD (8.3)",
       typ: "sonder",

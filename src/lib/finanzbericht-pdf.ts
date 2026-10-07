@@ -51,17 +51,20 @@ export async function generateFinanzberichtPdf(params: {
 
   // Je Ansicht-Block die sichtbaren Unterspalten — bei A2/Einnahmen nur der
   // rohe Betrag (kein Plan/Diff im Original), bei A1 der volle Soll-Ist-Satz.
+  // Beschriftungen 1:1 aus dem Original (Ausführungskosten-A1.pdf): die
+  // Laufzeit-Seite hat "Gesamt Ausgaben"/"FinPl EUR", die Haushaltsjahr-Seite
+  // nur "Ausgaben"/"Jahresprog" (ohne Punkt).
   const vollSpalten = kategorie.vollSpalten;
   type SpaltenKey = keyof FinanzDownloadSpalten;
-  const subCols: { key: SpaltenKey; label: (planLabel: string) => string }[] = vollSpalten
+  const subCols: { key: SpaltenKey; laufzeitLabel: string; haushaltsjahrLabel: string }[] = vollSpalten
     ? [
-        { key: "ausgaben", label: () => "Ausgaben" },
-        { key: "nichtZuFaehig", label: () => "nicht zu.fä." },
-        { key: "plan", label: (p) => p },
-        { key: "diffEur", label: () => "Diff EUR" },
-        { key: "diffProz", label: () => "Diff %" },
+        { key: "ausgaben", laufzeitLabel: "Gesamt Ausgaben", haushaltsjahrLabel: "Ausgaben" },
+        { key: "nichtZuFaehig", laufzeitLabel: "nicht zu.fä.", haushaltsjahrLabel: "nicht zu.fä." },
+        { key: "plan", laufzeitLabel: "FinPl EUR", haushaltsjahrLabel: "Jahresprog" },
+        { key: "diffEur", laufzeitLabel: "Diff EUR", haushaltsjahrLabel: "Diff EUR" },
+        { key: "diffProz", laufzeitLabel: "Diff %", haushaltsjahrLabel: "Diff %" },
       ]
-    : [{ key: "ausgaben", label: () => "Betrag" }];
+    : [{ key: "ausgaben", laufzeitLabel: "Betrag", haushaltsjahrLabel: "Betrag" }];
 
   const kontoSpalteBreite = vollSpalten ? 150 : 220;
   const nutzbareBreite = width - 2 * PAGE_MARGIN - kontoSpalteBreite;
@@ -83,20 +86,21 @@ export async function generateFinanzberichtPdf(params: {
   }
 
   function drawTableHeader() {
-    drawText("Laufzeit (FinPL)", laufzeitStartX, y, { bold: true, size: 9 });
-    drawText("Haushaltsjahr (Jahresprogramm)", haushaltsjahrStartX, y, { bold: true, size: 9 });
+    drawText("Soll - Ist Vergleich", kontoX, y, { bold: true, size: 9 });
+    drawText("Laufzeit", laufzeitStartX, y, { bold: true, size: 9 });
+    drawText("Haushaltsjahr", haushaltsjahrStartX, y, { bold: true, size: 9 });
     y -= 13;
-    drawText("Konto", kontoX, y, { bold: true });
+    drawText("Bezeichnung", kontoX, y, { bold: true });
     for (let i = 0; i < subCols.length; i++) {
-      drawText(subCols[i].label(vollSpalten ? "FinPL" : ""), subX(laufzeitStartX, i), y, { bold: true, align: "right" });
-      drawText(subCols[i].label(vollSpalten ? "Jahresprog." : ""), subX(haushaltsjahrStartX, i), y, { bold: true, align: "right" });
+      drawText(subCols[i].laufzeitLabel, subX(laufzeitStartX, i), y, { bold: true, align: "right" });
+      drawText(subCols[i].haushaltsjahrLabel, subX(haushaltsjahrStartX, i), y, { bold: true, align: "right" });
     }
     y -= 6;
     page.drawLine({
       start: { x: PAGE_MARGIN, y },
       end: { x: width - PAGE_MARGIN, y },
       thickness: 0.5,
-      color: rgb(0.6, 0.6, 0.6),
+      color: rgb(0.4, 0.4, 0.4),
     });
     y -= 13;
   }
@@ -119,7 +123,7 @@ export async function generateFinanzberichtPdf(params: {
         y: y - 3,
         width: width - 2 * PAGE_MARGIN + 6,
         height: 13,
-        color: rgb(0.98, 0.82, 0.29),
+        color: rgb(0.88, 0.88, 0.88),
       });
     }
     drawText(opts.indent ? `  ${zeile.konto}` : zeile.konto, kontoX, y, { bold: opts.bold });
