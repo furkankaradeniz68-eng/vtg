@@ -274,6 +274,25 @@ function maskiertesHaushaltsjahrProzent(diffProz: number): number {
   return diffProz >= 0 ? 0 : diffProz;
 }
 
+// Laengster gemeinsamer Praefix mehrerer Kontonummern — bestimmt die Ziffern-
+// Anzeige fuer eine zusammengefasste Positionszeile (z.B. "412101".."412109"
+// -> "41210"). Haben alle Zeilen einer Gruppe dieselbe Nummer (Einzelzeile,
+// kein echtes Zusammenfassen), wird trotzdem die letzte Ziffer (der
+// Teilbereich-Code: 1=AG, 2=D, 3=L, 4=W, 5=WD, 6=WS, 8=EU, 9=U) abgeschnitten,
+// da dieser im Original nie auf Einzelkonto-Ebene gezeigt wird.
+function laengsterGemeinsamerPraefix(codes: string[]): string {
+  let praefix = codes[0];
+  for (const code of codes.slice(1)) {
+    let i = 0;
+    while (i < praefix.length && i < code.length && praefix[i] === code[i]) i++;
+    praefix = praefix.slice(0, i);
+  }
+  if (praefix.length >= codes[0].length && praefix.length > 1) {
+    return praefix.slice(0, -1);
+  }
+  return praefix;
+}
+
 export async function findeFinanzDownloadKategorie(
   nr: string,
   slug: FinanzKategorieSlug,
@@ -328,23 +347,32 @@ export async function findeFinanzDownloadKategorie(
     let pHj = 0;
     const positionsZeilen: FinanzDownloadZeile[] = [];
 
-    // Positionszeilen werden nach Kontonummer MINUS letzter Ziffer zusammen-
-    // gefasst (das letzte Zeichen ist der Teilbereich-Code: 1=AG, 2=D, 3=L,
-    // 4=W, 5=WD, 6=WS, 8=EU, 9=U) — exakt wie im Original (z.B. 412101..
-    // 412109 werden zu einer Zeile "41210"). Beschreibung = Text vor dem
-    // ersten "/" in glAccountName (am Original verifiziert anhand des
-    // Grenzfalls "Planierg./Rodung+Kultivier./AG" -> "Planierg."). Diff% wird
-    // auf dieser Ebene im Original nicht ausgewiesen (nur bei Summe-/
-    // Gesamtzeilen).
+    // Positionszeilen werden nach BEREINIGTER BESCHREIBUNG zusammengefasst
+    // (Text vor dem ersten "/" in glAccountName, am Original verifiziert
+    // anhand des Grenzfalls "Planierg./Rodung+Kultivier./AG" -> "Planierg."),
+    // nicht nur nach der letzten Ziffer — so werden ALLE Konten mit gleicher
+    // Beschreibung in einer Summen-Gruppe zu einer Zeile zusammengefasst
+    // (nicht nur die neun Teilbereich-Varianten 412101..412109 einer einzigen
+    // Basisnummer), genau wie im Original, bei dem jede Summen-Gruppe am Ende
+    // auf eine Seite passt. Die angezeigte Kontonummer ist der laengste
+    // gemeinsame Ziffern-Praefix der zusammengefassten Konten. Diff% wird auf
+    // dieser Ebene im Original nicht ausgewiesen (nur bei Summe-/Gesamtzeilen).
     const positionsGruppen = new Map<string, BcBudgetLine[]>();
     for (const row of gruppenRows) {
-      const posSchluessel = row.glAccountNo.length > 1 ? row.glAccountNo.slice(0, -1) : row.glAccountNo;
-      const list = positionsGruppen.get(posSchluessel);
+      const beschreibung = (row.glAccountName.split("/")[0] ?? row.glAccountName).trim();
+      const list = positionsGruppen.get(beschreibung);
       if (list) list.push(row);
-      else positionsGruppen.set(posSchluessel, [row]);
+      else positionsGruppen.set(beschreibung, [row]);
     }
 
-    for (const [posSchluessel, posRows] of [...positionsGruppen.entries()].sort()) {
+    const positionsListe = [...positionsGruppen.entries()].map(([beschreibung, posRows]) => ({
+      beschreibung,
+      posRows,
+      minCode: posRows.reduce((min, r) => (r.glAccountNo < min ? r.glAccountNo : min), posRows[0].glAccountNo),
+    }));
+    positionsListe.sort((a, b) => a.minCode.localeCompare(b.minCode));
+
+    for (const { beschreibung, posRows } of positionsListe) {
       let aL = 0;
       let aHj = 0;
       let plL = 0;
@@ -364,8 +392,7 @@ export async function findeFinanzDownloadKategorie(
       gHj += aHj;
       pHj += plHj;
 
-      const rohBeschreibung = posRows[0].glAccountName;
-      const beschreibung = (rohBeschreibung.split("/")[0] ?? rohBeschreibung).trim();
+      const posSchluessel = laengsterGemeinsamerPraefix(posRows.map((r) => r.glAccountNo));
 
       if (vollSpalten) {
         positionsZeilen.push({

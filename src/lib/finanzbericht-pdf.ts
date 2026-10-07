@@ -86,6 +86,7 @@ export async function generateFinanzberichtPdf(params: {
   }
 
   function drawTableHeader() {
+    const trennLinienStartY = y + 4;
     drawText("Soll - Ist Vergleich", kontoX, y, { bold: true, size: 9 });
     drawText("Laufzeit", laufzeitStartX, y, { bold: true, size: 9 });
     drawText("Haushaltsjahr", haushaltsjahrStartX, y, { bold: true, size: 9 });
@@ -103,6 +104,20 @@ export async function generateFinanzberichtPdf(params: {
       color: rgb(0.4, 0.4, 0.4),
     });
     y -= 13;
+
+    // Vertikale Trennlinien von oben (Kopfzeile) bis unten (Seitenrand)
+    // zwischen Bezeichnung, Laufzeit und Haushaltsjahr — je Seite neu
+    // gezeichnet, da jede Seite ihre eigene Kopfzeile bekommt.
+    const trennX1 = laufzeitStartX - 6;
+    const trennX2 = haushaltsjahrStartX - 6;
+    for (const x of [trennX1, trennX2]) {
+      page.drawLine({
+        start: { x, y: trennLinienStartY },
+        end: { x, y: PAGE_MARGIN },
+        thickness: 0.5,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+    }
   }
 
   function ensureSpace(rowHeight: number) {
