@@ -5,7 +5,7 @@ import VerfahrenKarte from "@/components/VerfahrenKarte";
 import { requireSession } from "@/lib/auth";
 import { findVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
 import { getKoordinaten } from "@/lib/verfahren-personendaten";
-import { getVerfahrenPolygon } from "@/lib/verfahren-polygone";
+import { getVerfahrenPolygon, getAlleVerfahrenPolygoneUebersicht } from "@/lib/verfahren-polygone";
 
 export const metadata: Metadata = { title: "Verfahrensdaten | VTG Rheinland-Pfalz" };
 
@@ -71,7 +71,11 @@ export default async function VerfahrensdatenPage({
             </Link>
 
             {polygon ? (
-              <VerfahrenKarte polygon={polygon} />
+              <VerfahrenKarte
+                polygon={polygon}
+                aktuelleNr={verfahren.nr}
+                alleVerfahren={getAlleVerfahrenPolygoneUebersicht()}
+              />
             ) : (
               koordinaten && (
                 <div className="mt-10 overflow-hidden rounded-lg border border-neutral-200">
