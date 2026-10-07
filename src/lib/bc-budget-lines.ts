@@ -296,6 +296,71 @@ function laengsterGemeinsamerPraefix(codes: string[]): string {
   return praefix;
 }
 
+// Basis-Kontonummer ohne den letzten Ziffern-Teilbereichscode (1=AG, 2=D,
+// 3=L, 4=W, 5=WD, 6=WS, 8=EU, 9=U), z.B. "415301" -> "41530".
+function basisKonto(code: string): string {
+  return code.length > 1 ? code.slice(0, -1) : code;
+}
+
+// Fasst Positionszeilen zu Gruppen zusammen, wenn sie ENTWEDER dieselbe
+// Basis-Kontonummer (ohne Teilbereichscode) ODER dieselbe bereinigte
+// Beschreibung (Text vor dem ersten "/" in glAccountName) teilen — per
+// Union-Find, da beide Kriterien unabhaengig voneinander am alten
+// vtg-rlp.de verifiziert wurden:
+//  - Gleiche Basisnummer, unterschiedliche Beschreibung: z.B. 415301/
+//    415302/415303 ("*Landespfl. oeffentl. Inter"/"...Inter."/"...Inte.")
+//    sind in BC je Teilbereich minimal unterschiedlich (und manchmal
+//    abweichend abgeschnitten) betitelt, zeigen im Original aber eine
+//    einzige Zeile "41530".
+//  - Gleiche Beschreibung, unterschiedliche Basisnummer: z.B. teilen sich
+//    manche Konten dieselbe Bezeichnung trotz unterschiedlicher Basisnummer
+//    (Grenzfall "Planierg./Rodung+Kultivier./AG" -> "Planierg.") und werden
+//    im Original ebenfalls zu einer Zeile zusammengefasst.
+// Die angezeigte Beschreibung einer Gruppe ist die der Zeile mit der
+// kleinsten Kontonummer (meist der Teilbereich AG, entspricht i.d.R. der
+// Original-Bezeichnung ohne Abschneide-Variante).
+function gruppenNachBasisOderBeschreibung(rows: BcBudgetLine[]): BcBudgetLine[][] {
+  const parent = rows.map((_, i) => i);
+  function find(i: number): number {
+    let root = i;
+    while (parent[root] !== root) root = parent[root];
+    let cur = i;
+    while (parent[cur] !== root) {
+      const next = parent[cur];
+      parent[cur] = root;
+      cur = next;
+    }
+    return root;
+  }
+  function union(a: number, b: number) {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  }
+
+  const ersterIndexJeBasis = new Map<string, number>();
+  const ersterIndexJeBeschreibung = new Map<string, number>();
+  rows.forEach((row, i) => {
+    const basis = basisKonto(row.glAccountNo);
+    const beschreibung = (row.glAccountName.split("/")[0] ?? row.glAccountName).trim();
+    const basisIndex = ersterIndexJeBasis.get(basis);
+    if (basisIndex !== undefined) union(basisIndex, i);
+    else ersterIndexJeBasis.set(basis, i);
+    const beschreibungIndex = ersterIndexJeBeschreibung.get(beschreibung);
+    if (beschreibungIndex !== undefined) union(beschreibungIndex, i);
+    else ersterIndexJeBeschreibung.set(beschreibung, i);
+  });
+
+  const gruppenNachWurzel = new Map<number, BcBudgetLine[]>();
+  rows.forEach((row, i) => {
+    const wurzel = find(i);
+    const list = gruppenNachWurzel.get(wurzel);
+    if (list) list.push(row);
+    else gruppenNachWurzel.set(wurzel, [row]);
+  });
+  return [...gruppenNachWurzel.values()];
+}
+
 export async function findeFinanzDownloadKategorie(
   nr: string,
   slug: FinanzKategorieSlug,
@@ -355,29 +420,22 @@ export async function findeFinanzDownloadKategorie(
     let pHj = 0;
     const positionsZeilen: FinanzDownloadZeile[] = [];
 
-    // Positionszeilen werden nach BEREINIGTER BESCHREIBUNG zusammengefasst
-    // (Text vor dem ersten "/" in glAccountName, am Original verifiziert
-    // anhand des Grenzfalls "Planierg./Rodung+Kultivier./AG" -> "Planierg."),
-    // nicht nur nach der letzten Ziffer — so werden ALLE Konten mit gleicher
-    // Beschreibung in einer Summen-Gruppe zu einer Zeile zusammengefasst
-    // (nicht nur die neun Teilbereich-Varianten 412101..412109 einer einzigen
-    // Basisnummer), genau wie im Original, bei dem jede Summen-Gruppe am Ende
-    // auf eine Seite passt. Die angezeigte Kontonummer ist der laengste
-    // gemeinsame Ziffern-Praefix der zusammengefassten Konten. Diff% wird auf
-    // dieser Ebene im Original nicht ausgewiesen (nur bei Summe-/Gesamtzeilen).
-    const positionsGruppen = new Map<string, BcBudgetLine[]>();
-    for (const row of gruppenRows) {
-      const beschreibung = (row.glAccountName.split("/")[0] ?? row.glAccountName).trim();
-      const list = positionsGruppen.get(beschreibung);
-      if (list) list.push(row);
-      else positionsGruppen.set(beschreibung, [row]);
-    }
-
-    const positionsListe = [...positionsGruppen.entries()].map(([beschreibung, posRows]) => ({
-      beschreibung,
-      posRows,
-      minCode: posRows.reduce((min, r) => (r.glAccountNo < min ? r.glAccountNo : min), posRows[0].glAccountNo),
-    }));
+    // Positionszeilen werden nach Basis-Kontonummer ODER bereinigter
+    // Beschreibung zusammengefasst (siehe gruppenNachBasisOderBeschreibung
+    // oben) — so werden sowohl die klassischen Teilbereich-Varianten einer
+    // Basisnummer (412101..412109, auch bei abweichender Beschreibung wie
+    // 41530) als auch Konten mit gleicher Beschreibung trotz unterschied-
+    // licher Basisnummer (Grenzfall "Planierg./Rodung+Kultivier./AG") zu je
+    // einer Zeile zusammengefasst, genau wie im Original, bei dem jede
+    // Summen-Gruppe am Ende auf eine Seite passt. Die angezeigte Kontonummer
+    // ist der laengste gemeinsame Ziffern-Praefix der zusammengefassten
+    // Konten. Diff% wird auf dieser Ebene im Original nicht ausgewiesen (nur
+    // bei Summe-/Gesamtzeilen).
+    const positionsListe = gruppenNachBasisOderBeschreibung(gruppenRows).map((posRows) => {
+      const sortierteRows = [...posRows].sort((a, b) => a.glAccountNo.localeCompare(b.glAccountNo));
+      const beschreibung = (sortierteRows[0].glAccountName.split("/")[0] ?? sortierteRows[0].glAccountName).trim();
+      return { beschreibung, posRows: sortierteRows, minCode: sortierteRows[0].glAccountNo };
+    });
     positionsListe.sort((a, b) => a.minCode.localeCompare(b.minCode));
 
     for (const { beschreibung, posRows } of positionsListe) {
