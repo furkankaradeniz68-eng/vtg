@@ -5,7 +5,7 @@
 // Client wird ausschliesslich aus dem naechtlichen Sync-Job (Abschnitt "Weg A"
 // im BC-Konzept) heraus aufgerufen, nicht pro Seitenaufruf - ein simpler
 // Modul-Cache reicht daher aus.
-import { BC_TOKEN_URL, BC_SCOPE, BC_RLP_BASE_URL } from "@/lib/bc-config";
+import { BC_TOKEN_URL, BC_SCOPE, BC_RLP_BASE_URL, BC_GRANTS_BASE_URL } from "@/lib/bc-config";
 
 function getEnv(name: string): string {
   const value = process.env[name];
@@ -58,8 +58,9 @@ async function getToken(): Promise<string> {
   return cachedToken.accessToken;
 }
 
-type TgExportFileEntry = {
+type ExportFileEntry = {
   filename: string;
+  contentType?: string;
   snapshotDateTime: string;
   generationId?: string;
   "content@odata.mediaReadLink": string;
@@ -67,29 +68,31 @@ type TgExportFileEntry = {
 
 export type BcExportFile = {
   filename: string;
+  // Aus den BC-Metadaten (Feld "contentType") - der Download-Header von BC selbst
+  // ist immer application/octet-stream.
+  contentType?: string;
   snapshotDateTime: string;
   generationId?: string;
   buffer: ArrayBuffer;
 };
 
-// Holt eine Datei aus der BC-Entity "tgExportFiles" (naechtlicher TG-
-// Einzeldaten-Export) ueber einen OData-$filter. Erster Request liefert nur
-// Metadaten + Downloadlink (content@odata.mediaReadLink), zweiter Request
-// (gleiches Token) liefert die eigentlichen Binaerdaten - siehe Anleitung von
-// Erik (BC-Entwicklung, 2026) zur neuen tgExportFiles-Schnittstelle. Der
-// $filter ist hier immer so gebaut, dass genau ein aktueller Datensatz
+// Holt eine Datei aus einer BC-Export-Entity (tgExportFiles, grantOverviewExportFiles)
+// ueber einen OData-$filter. Erster Request liefert nur Metadaten + Downloadlink
+// (content@odata.mediaReadLink), zweiter Request (gleiches Token) liefert die
+// eigentlichen Binaerdaten - siehe Anleitung von Erik (BC-Entwicklung, 2026).
+// Der $filter ist hier immer so gebaut, dass genau ein aktueller Datensatz
 // zurueckkommt, Paging ueber @odata.nextLink ist fuer diesen Anwendungsfall
 // daher nicht noetig.
-export async function fetchBcExportFile(filter: string): Promise<BcExportFile | null> {
+async function fetchBcFile(baseUrl: string, entity: string, filter: string): Promise<BcExportFile | null> {
   const token = await getToken();
-  const url = `${BC_RLP_BASE_URL}/tgExportFiles?${new URLSearchParams({ $filter: filter }).toString()}`;
+  const url = `${baseUrl}/${entity}?${new URLSearchParams({ $filter: filter }).toString()}`;
 
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) {
-    console.error(`BC-Abfrage fehlgeschlagen (tgExportFiles): ${res.status} ${await res.text()}`);
-    throw new Error(`BC-Abfrage fehlgeschlagen (tgExportFiles): HTTP ${res.status} (Details im Server-Log)`);
+    console.error(`BC-Abfrage fehlgeschlagen (${entity}): ${res.status} ${await res.text()}`);
+    throw new Error(`BC-Abfrage fehlgeschlagen (${entity}): HTTP ${res.status} (Details im Server-Log)`);
   }
-  const data = (await res.json()) as { value: TgExportFileEntry[] };
+  const data = (await res.json()) as { value: ExportFileEntry[] };
   const entry = data.value[0];
   if (!entry) return null;
 
@@ -97,16 +100,28 @@ export async function fetchBcExportFile(filter: string): Promise<BcExportFile | 
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!mediaRes.ok) {
-    console.error(`BC-Dateiabruf fehlgeschlagen (tgExportFiles): ${mediaRes.status} ${await mediaRes.text()}`);
-    throw new Error(`BC-Dateiabruf fehlgeschlagen (tgExportFiles): HTTP ${mediaRes.status} (Details im Server-Log)`);
+    console.error(`BC-Dateiabruf fehlgeschlagen (${entity}): ${mediaRes.status} ${await mediaRes.text()}`);
+    throw new Error(`BC-Dateiabruf fehlgeschlagen (${entity}): HTTP ${mediaRes.status} (Details im Server-Log)`);
   }
 
   return {
     filename: entry.filename,
+    contentType: entry.contentType,
     snapshotDateTime: entry.snapshotDateTime,
     generationId: entry.generationId,
     buffer: await mediaRes.arrayBuffer(),
   };
+}
+
+// Naechtlicher TG-Einzeldaten-Export (Entity "tgExportFiles").
+export function fetchBcExportFile(filter: string): Promise<BcExportFile | null> {
+  return fetchBcFile(BC_RLP_BASE_URL, "tgExportFiles", filter);
+}
+
+// Gemeinsame Abruf-/Zuwendungsuebersicht-Excel (Entity "grantOverviewExportFiles",
+// API-Gruppe "grants") - eine Datei fuer alle Mandanten, nur die aktuelle.
+export function fetchBcGrantOverviewFile(): Promise<BcExportFile | null> {
+  return fetchBcFile(BC_GRANTS_BASE_URL, "grantOverviewExportFiles", "isCurrent eq true");
 }
 
 type ODataResponse<T> = { value: T[]; "@odata.nextLink"?: string };

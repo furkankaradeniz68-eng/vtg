@@ -8,8 +8,7 @@ export type NavItem = {
   hideOnPortal?: boolean;
   // Zeigt ein kleines Download-Symbol hinter dem Label (siehe Header2.tsx) -
   // rein visuell, unabhaengig davon ob href selbst eine Datei ist oder eine
-  // normale Seite mit Download-Funktion dahinter (z.B. Bewilligungs- und
-  // Abrufuebersicht).
+  // normale Seite mit Download-Funktion dahinter.
   icon?: "download";
   // Fuer Items, deren Ziel vom aktuell gewaehlten Verfahren abhaengt (die
   // ?id=... Query auf Verfahrensdaten/Finanzuebersicht). href wird dann
@@ -27,7 +26,7 @@ export type NavItem = {
 // gestreamt (z.B. das admin-ersetzbare Kontenplan-PDF oder die TG-
 // Einzeldaten-Exports) — solche Routen tragen keine Dateiendung in der URL
 // und muessen deshalb explizit erkannt werden.
-const FILE_API_ROUTES = ["/api/kontenplan"];
+const FILE_API_ROUTES = ["/api/kontenplan", "/api/bewilligungs-abrufuebersicht"];
 const FILE_API_PREFIXES = ["/api/tg-einzeldaten/"];
 
 export function isFileHref(href: string): boolean {
@@ -146,7 +145,7 @@ export const header2SecondRow: Partial<Record<MemberRole, NavItem[]>> = {
   intern: [
     {
       label: "Bewilligungs- und Abrufübersicht",
-      href: "/mitgliederbereich/bewilligungs-und-abrufuebersicht",
+      href: "/api/bewilligungs-abrufuebersicht",
       icon: "download",
     },
   ],
