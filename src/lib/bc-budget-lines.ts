@@ -13,7 +13,9 @@
 // (ersetzt den bisherigen Ableitungsversuch aus BILANZKONTEN-Summe):
 //   Kontostand                     = Saldo(1200)
 //   Forderungen/Verbindlichkeiten  = Saldo(1400) + Saldo(1401) + Saldo(1590)
-//                                    (1401 seit 2026-10-09, siehe getFinanzUebersichtKennzahlen)
+//                                    + Saldo(1600) + Saldo(1601)
+//                                    (1401/1600/1601 seit 2026-10-09, siehe
+//                                    getFinanzUebersichtKennzahlen)
 //   Forderungen/Verbindlichkeiten BD = Saldo(1591)
 //   Vermoegen der TG               = Kontostand + Forderungen/Verbindlichkeiten
 //                                     + Forderungen/Verbindlichkeiten BD
@@ -642,12 +644,16 @@ export async function getFinanzUebersichtKennzahlen(
     aktuelleRows.filter((r) => r.glAccountNo === konto).reduce((sum, r) => sum + r.balance, 0);
 
   const kontostand = saldoVon("1200");
-  // 1401 ("Forderungen Nichtmitglieder") gehoert seit 2026-10-09 dazu: Bei
-  // Verfahren wie 19026 stehen die Forderungen komplett auf 1401, waehrend
-  // 1400 ("Forderungen Mitglieder") und 1590 in BC 0 sind - die Kachel zeigte
-  // dann faelschlich immer 0,00 (Kundenhinweis). Vorher (2026-10-07 vor Ort
-  // abgestimmt): nur 1400 + 1590.
-  const forderungenVerbindlichkeiten = saldoVon("1400") + saldoVon("1401") + saldoVon("1590");
+  // Seit 2026-10-09 inkl. 1401 ("Forderungen Nichtmitglieder") und der
+  // Verbindlichkeiten 1600/1601: Bei Verfahren wie 19026 stehen die Forderungen
+  // komplett auf 1401 (1400/1590 sind 0 - die Kachel zeigte immer 0,00), und
+  // beim Vergleich mit der alten Seite (11125) wich nur diese Zeile ab, um
+  // -16.767,20 - die Zeile heisst "Forderungen / Verbindlichkeiten", rechnete
+  // aber nur Forderungen. Verbindlichkeiten sind in BC negativ gefuehrt, die
+  // Summe also direkt der Nettosaldo. Vorher (2026-10-07 vor Ort abgestimmt):
+  // nur 1400 + 1590.
+  const forderungenVerbindlichkeiten =
+    saldoVon("1400") + saldoVon("1401") + saldoVon("1590") + saldoVon("1600") + saldoVon("1601");
   const forderungenVerbindlichkeitenBD = saldoVon("1591");
   const vermoegenDerTG = kontostand + forderungenVerbindlichkeiten + forderungenVerbindlichkeitenBD;
 
