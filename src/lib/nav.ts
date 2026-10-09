@@ -104,9 +104,9 @@ export type MemberRole = "abonnent" | "intern";
 export const header2Nav: Record<MemberRole, NavItem[]> = {
   abonnent: [
     { label: "Verfahrensdaten", href: "/mitgliederbereich/verfahrensdaten" },
-    { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
-    { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
+    { label: "Zins", href: "/mitgliederbereich/zins" },
+    { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
     { label: "Beitragssätze", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf", icon: "download" },
     // Laedt die eigene TG-Einzeldaten-XLSX des Mandanten aus BC (nicht den
     // allgemeinen Kontenplan) - hrefPrefix wird in Header2.tsx mit der
@@ -122,6 +122,10 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
   intern: [
     { label: "Verfahrensauswahl", href: "/mitgliederbereich/verfahrensauswahl" },
     { label: "Verfahrensdaten", href: "/mitgliederbereich/verfahrensdaten" },
+    { label: "Umlage", href: "/mitgliederbereich/umlage" },
+    { label: "Zins", href: "/mitgliederbereich/zins" },
+    { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
+    { label: "Beitragssätze", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf", icon: "download" },
     // Haengt vom aktuell gewaehlten Verfahren ab (?id=... aus Verfahrensauswahl) -
     // ohne Auswahl deaktiviert, siehe hrefPrefix-Handling in Header2.tsx. href
     // dient nur als Fallback-Ziel, falls das Item trotzdem ohne hrefPrefix-
@@ -132,12 +136,7 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
       hrefPrefix: "/api/tg-einzeldaten/",
       icon: "download",
     },
-    { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
-    { label: "Zins", href: "/mitgliederbereich/zins" },
-    { label: "Umlage", href: "/mitgliederbereich/umlage" },
-    { label: "Beitragssätze (PDF)", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf" },
     { label: "TG-Einzeldaten (ZIP)", href: "/api/tg-einzeldaten/zip", hideOnPortal: true, icon: "download" },
-    { label: "Kontenplan TG", href: "/api/kontenplan", icon: "download" },
   ],
 };
 
@@ -148,6 +147,7 @@ export const header2SecondRow: Partial<Record<MemberRole, NavItem[]>> = {
       href: "/api/bewilligungs-abrufuebersicht",
       icon: "download",
     },
+    { label: "Kontenplan TG", href: "/api/kontenplan", icon: "download" },
   ],
 };
 
