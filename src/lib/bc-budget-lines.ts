@@ -8,17 +8,18 @@
 //   Sonstige Ausfuehrungskosten/A2 -> 422xx - 425xx
 //   Einnahmen                    -> alle Konten, die mit "8" beginnen (811xx-891xx)
 // Die Bilanzkonten-Formel fuer die Finanzuebersicht-Kennzahlen (Kontostand/
-// Forderungen-Verbindlichkeiten/Vermoegen der TG) wurde am 2026-10-07 von
-// Furkan mit dem Kunden vor Ort validiert und verbindlich festgelegt
-// (ersetzt den bisherigen Ableitungsversuch aus BILANZKONTEN-Summe):
-//   Kontostand                     = Saldo(1200)
-//   Forderungen/Verbindlichkeiten  = Saldo(1400) + Saldo(1401) + Saldo(1590)
-//                                    + Saldo(1600) + Saldo(1601)
-//                                    (1401/1600/1601 seit 2026-10-09, siehe
-//                                    getFinanzUebersichtKennzahlen)
+// Forderungen-Verbindlichkeiten/Vermoegen der TG) wurde am 2026-10-09 anhand
+// eines Vergleichs mit der alten vtg-rlp.de (Verfahren 11125, auf den Cent
+// nachgerechnet) auf folgende Regel umgestellt:
+//   Kontostand                       = Saldo(1200)
 //   Forderungen/Verbindlichkeiten BD = Saldo(1591)
-//   Vermoegen der TG               = Kontostand + Forderungen/Verbindlichkeiten
-//                                     + Forderungen/Verbindlichkeiten BD
+//   Vermoegen der TG                 = Summe ALLER Bilanzkonten (0xxx/1xxx)
+//   Forderungen/Verbindlichkeiten    = Vermoegen - Kontostand - BD
+//                                      (= alle uebrigen Bilanzkonten: 1400/1401,
+//                                      1590, 1600/1601, 1360, 1800/1890 ...)
+// Die Summe aller Bilanzkonten ist doppelte Buchfuehrung zufolge gleich dem
+// negativen Saldo der Erfolgskonten (Einnahmen - Ausgaben) - so hatte auch die
+// alte Seite 11125 mit Vermoegen -41.205,04 = 60.558,14 - 101.763,18.
 // Konto 1591 ("BD") ist ein normales Sachkonto aus demselben vtgBudgetLines-
 // Snapshot wie alle anderen Konten hier (kein Extra-Sync noetig).
 import { get } from "@vercel/blob";
@@ -643,19 +644,17 @@ export async function getFinanzUebersichtKennzahlen(
   const saldoVon = (konto: string) =>
     aktuelleRows.filter((r) => r.glAccountNo === konto).reduce((sum, r) => sum + r.balance, 0);
 
+  // Bilanzkonten = alle 4-stelligen Konten, die mit 0 oder 1 beginnen. Die
+  // fruehere Einzelkonten-Aufzaehlung (1400 + 1590, dann 1401/1600/1601) liess
+  // immer wieder Konten aus - bei 11125 fehlten -16.767,20 gegenueber der alten
+  // Seite (bei 41230 war schon am 2026-10-07 eine Abweichung von 137.000,00
+  // offen). Mit der Summe aller Bilanzkonten gibt es keine Liste mehr zu pflegen.
+  const vermoegenDerTG = aktuelleRows
+    .filter((r) => /^[01]/.test(r.glAccountNo))
+    .reduce((sum, r) => sum + r.balance, 0);
   const kontostand = saldoVon("1200");
-  // Seit 2026-10-09 inkl. 1401 ("Forderungen Nichtmitglieder") und der
-  // Verbindlichkeiten 1600/1601: Bei Verfahren wie 19026 stehen die Forderungen
-  // komplett auf 1401 (1400/1590 sind 0 - die Kachel zeigte immer 0,00), und
-  // beim Vergleich mit der alten Seite (11125) wich nur diese Zeile ab, um
-  // -16.767,20 - die Zeile heisst "Forderungen / Verbindlichkeiten", rechnete
-  // aber nur Forderungen. Verbindlichkeiten sind in BC negativ gefuehrt, die
-  // Summe also direkt der Nettosaldo. Vorher (2026-10-07 vor Ort abgestimmt):
-  // nur 1400 + 1590.
-  const forderungenVerbindlichkeiten =
-    saldoVon("1400") + saldoVon("1401") + saldoVon("1590") + saldoVon("1600") + saldoVon("1601");
   const forderungenVerbindlichkeitenBD = saldoVon("1591");
-  const vermoegenDerTG = kontostand + forderungenVerbindlichkeiten + forderungenVerbindlichkeitenBD;
+  const forderungenVerbindlichkeiten = vermoegenDerTG - kontostand - forderungenVerbindlichkeitenBD;
 
   return {
     kontostand,
