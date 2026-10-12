@@ -54,27 +54,55 @@ const DEFAULT_ROWS: VobVolRow[] = seedRowsRaw as VobVolRow[];
 // auftauchen oder der Nachtrag doppelt eingespielt wird.
 const NACHTRAG_ROWS = nachtragRowsRaw as VobVolRow[];
 const NACHTRAG_MARKER_PATHNAME = "vob-vol-nachtrag-2026-10-12.json";
+// Einmalige Reihenfolge-Korrektur (2026-10-12): TG Ilbesheim (21126/2026) war nach
+// einer manuellen Anpassung ans Listenende gerutscht und gehoert hinter TG Leuktal
+// (79028/2026), wie in der Original-PDF.
+const REIHENFOLGE_MARKER_PATHNAME = "vob-vol-reihenfolge-ilbesheim-2026-10-12.json";
 
-async function wendeNachtragAn(rows: VobVolRow[]): Promise<VobVolRow[]> {
-  const marker = await get(NACHTRAG_MARKER_PATHNAME, {
+async function markerVorhanden(pathname: string): Promise<boolean> {
+  const marker = await get(pathname, {
     access: "private",
     useCache: false,
     token: BLOB_TOKEN,
     abortSignal: blobAbortSignal(),
   }).catch(() => null);
-  if (marker && marker.statusCode === 200) return rows;
+  return !!marker && marker.statusCode === 200;
+}
 
-  const vorhanden = new Set(rows.map((r) => r.id));
-  const alle = [...rows, ...NACHTRAG_ROWS.filter((r) => !vorhanden.has(r.id))];
-  await saveVobVolRows(alle);
-  await put(NACHTRAG_MARKER_PATHNAME, JSON.stringify({ eingespielt: new Date().toISOString() }), {
+async function setzeMarker(pathname: string): Promise<void> {
+  await put(pathname, JSON.stringify({ eingespielt: new Date().toISOString() }), {
     access: "private",
     contentType: "application/json",
     addRandomSuffix: false,
     allowOverwrite: true,
     token: BLOB_TOKEN,
   });
-  return alle;
+}
+
+async function wendeNachtragAn(rows: VobVolRow[]): Promise<VobVolRow[]> {
+  if (!(await markerVorhanden(NACHTRAG_MARKER_PATHNAME))) {
+    const vorhanden = new Set(rows.map((r) => r.id));
+    rows = [...rows, ...NACHTRAG_ROWS.filter((r) => !vorhanden.has(r.id))];
+    await saveVobVolRows(rows);
+    await setzeMarker(NACHTRAG_MARKER_PATHNAME);
+  }
+  return wendeReihenfolgeKorrekturAn(rows);
+}
+
+async function wendeReihenfolgeKorrekturAn(rows: VobVolRow[]): Promise<VobVolRow[]> {
+  if (await markerVorhanden(REIHENFOLGE_MARKER_PATHNAME)) return rows;
+  const ist = (r: VobVolRow, nr: string) => r.prodNr === nr && r.jahr === "2026";
+  const ilbesheim = rows.findIndex((r) => ist(r, "21126"));
+  const leuktal = rows.findIndex((r) => ist(r, "79028"));
+  if (ilbesheim !== -1 && leuktal !== -1 && ilbesheim !== leuktal + 1) {
+    const kopie = [...rows];
+    const [zeile] = kopie.splice(ilbesheim, 1);
+    kopie.splice(kopie.findIndex((r) => ist(r, "79028")) + 1, 0, zeile);
+    rows = kopie;
+    await saveVobVolRows(rows);
+  }
+  await setzeMarker(REIHENFOLGE_MARKER_PATHNAME);
+  return rows;
 }
 
 // Keine Modul-weite Zwischenspeicherung, siehe umlage.ts: diese Daten werden
@@ -137,6 +165,8 @@ export async function addVobVolRow(data: VobVolRowInput): Promise<void> {
   await saveVobVolRows(rows);
 }
 
+// Bearbeiten aendert die Zeile an Ort und Stelle: die Position in der Liste bleibt
+// erhalten. Nur neu angelegte Zeilen (addVobVolRow) kommen ans Ende.
 export async function updateVobVolRow(id: string, data: VobVolRowInput): Promise<void> {
   const rows = await loadVobVolRows();
   const row = rows.find((r) => r.id === id);
