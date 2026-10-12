@@ -26,7 +26,7 @@ export type NavItem = {
 // gestreamt (z.B. das admin-ersetzbare Kontenplan-PDF oder die TG-
 // Einzeldaten-Exports) — solche Routen tragen keine Dateiendung in der URL
 // und muessen deshalb explizit erkannt werden.
-const FILE_API_ROUTES = ["/api/kontenplan", "/api/bewilligungs-abrufuebersicht"];
+const FILE_API_ROUTES = ["/api/kontenplan", "/api/bewilligungs-abrufuebersicht", "/api/beitragssaetze"];
 const FILE_API_PREFIXES = ["/api/tg-einzeldaten/"];
 
 export function isFileHref(href: string): boolean {
@@ -107,7 +107,7 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
-    { label: "Beitragssätze", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf", icon: "download" },
+    { label: "Beitragssätze", href: "/api/beitragssaetze", icon: "download" },
     // Laedt die eigene TG-Einzeldaten-XLSX des Mandanten aus BC (nicht den
     // allgemeinen Kontenplan) - hrefPrefix wird in Header2.tsx mit der
     // eigenen Produktnummer (= session.username bei "abonnent") aufgeloest,
@@ -125,7 +125,7 @@ export const header2Nav: Record<MemberRole, NavItem[]> = {
     { label: "Umlage", href: "/mitgliederbereich/umlage" },
     { label: "Zins", href: "/mitgliederbereich/zins" },
     { label: "Energiekostenzuschlag", href: "/mitgliederbereich/energiekostenzuschlag" },
-    { label: "Beitragssätze", href: "/downloads/Flyer_Beitragssätze_Aktuell.pdf", icon: "download" },
+    { label: "Beitragssätze", href: "/api/beitragssaetze", icon: "download" },
     // Haengt vom aktuell gewaehlten Verfahren ab (?id=... aus Verfahrensauswahl) -
     // ohne Auswahl deaktiviert, siehe hrefPrefix-Handling in Header2.tsx. href
     // dient nur als Fallback-Ziel, falls das Item trotzdem ohne hrefPrefix-
