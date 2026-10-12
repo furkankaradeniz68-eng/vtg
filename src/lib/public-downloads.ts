@@ -21,6 +21,10 @@ export type PublicDownloadEntry = {
   blobPathname?: string;
   filename?: string;
   updatedAt: string;
+  // Nur fuer NACHTRAEGLICHE_SEEDS: ein vom Admin geloeschter Eintrag bleibt als
+  // unsichtbarer Marker erhalten, damit er beim naechsten Laden nicht wieder
+  // automatisch angelegt wird.
+  removed?: boolean;
 };
 
 const DEFAULT_ENTRIES: PublicDownloadEntry[] = [
@@ -54,6 +58,14 @@ const DEFAULT_ENTRIES: PublicDownloadEntry[] = [
     title: "Flyer Beitragssätze",
     description: "Übersicht der aktuellen Beitragssätze.",
     url: "/downloads/Flyer_Beitragssätze_Aktuell.pdf",
+    updatedAt: new Date(0).toISOString(),
+  },
+  {
+    id: "seed-satzung-5",
+    category: "satzung-vordrucke",
+    title: "Antrag Übernahme Kassenführung",
+    description: "Vordruck zur Übernahme der Buchführung für ein Verfahren.",
+    url: "/downloads/Uebernahme_Buchfuehrung.doc",
     updatedAt: new Date(0).toISOString(),
   },
   {
@@ -163,6 +175,31 @@ const DEFAULT_ENTRIES: PublicDownloadEntry[] = [
   },
 ];
 
+// DEFAULT_ENTRIES wird nur beim allerersten Anlegen des Blobs verwendet - danach
+// pflegen die Admins die Liste und neue Eintraege im Code erscheinen nicht von
+// selbst. Fuer Eintraege, die nach dem ersten Anlegen dazukommen sollen (hier
+// "Antrag Übernahme Kassenführung", 2026-10-12), werden genau diese IDs beim
+// Laden einmalig ergaenzt. Bewusst eine feste Liste statt "alle fehlenden
+// Seeds": sonst tauchten alle frueher vom Admin geloeschten Seeds wieder auf.
+const NACHTRAEGLICHE_SEEDS = ["seed-satzung-5"];
+
+function ergaenzeNachtraeglicheSeeds(entries: PublicDownloadEntry[]): boolean {
+  let geaendert = false;
+  for (const id of NACHTRAEGLICHE_SEEDS) {
+    if (entries.some((e) => e.id === id)) continue;
+    const seed = DEFAULT_ENTRIES.find((e) => e.id === id);
+    if (!seed) continue;
+    // hinter den letzten vorhandenen Eintrag derselben Kategorie einsortieren
+    let pos = -1;
+    entries.forEach((e, i) => {
+      if (e.category === seed.category) pos = i;
+    });
+    entries.splice(pos === -1 ? entries.length : pos + 1, 0, { ...seed, updatedAt: new Date().toISOString() });
+    geaendert = true;
+  }
+  return geaendert;
+}
+
 // Keine Modul-weite Zwischenspeicherung, siehe downloads.ts: diese Metadaten
 // werden von der Anwendung selbst laufend veraendert.
 async function loadPublicDownloads(): Promise<PublicDownloadEntry[]> {
@@ -177,7 +214,9 @@ async function loadPublicDownloads(): Promise<PublicDownloadEntry[]> {
     return DEFAULT_ENTRIES;
   }
   const text = await new Response(result.stream).text();
-  return JSON.parse(text) as PublicDownloadEntry[];
+  const entries = JSON.parse(text) as PublicDownloadEntry[];
+  if (ergaenzeNachtraeglicheSeeds(entries)) await savePublicDownloads(entries);
+  return entries;
 }
 
 async function savePublicDownloads(entries: PublicDownloadEntry[]): Promise<void> {
@@ -192,16 +231,16 @@ async function savePublicDownloads(entries: PublicDownloadEntry[]): Promise<void
 
 export async function getPublicDownloadsByCategory(category: PublicDownloadCategory): Promise<PublicDownloadEntry[]> {
   const entries = await loadPublicDownloads();
-  return entries.filter((e) => e.category === category);
+  return entries.filter((e) => e.category === category && !e.removed);
 }
 
 export async function getAllPublicDownloads(): Promise<PublicDownloadEntry[]> {
-  return loadPublicDownloads();
+  return (await loadPublicDownloads()).filter((e) => !e.removed);
 }
 
 export async function getPublicDownloadById(id: string): Promise<PublicDownloadEntry | undefined> {
   const entries = await loadPublicDownloads();
-  return entries.find((e) => e.id === id);
+  return entries.find((e) => e.id === id && !e.removed);
 }
 
 export async function addPublicDownload(entry: PublicDownloadEntry): Promise<void> {
@@ -240,6 +279,11 @@ export async function removePublicDownload(id: string): Promise<void> {
   if (!entry) return;
   if (entry.blobPathname) {
     await del(entry.blobPathname, { token: BLOB_TOKEN }).catch(() => {});
+  }
+  if (NACHTRAEGLICHE_SEEDS.includes(id)) {
+    entry.removed = true;
+    await savePublicDownloads(entries);
+    return;
   }
   await savePublicDownloads(entries.filter((e) => e.id !== id));
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { contentDisposition } from "@/lib/content-disposition";
 import { get } from "@vercel/blob";
 import { getStellenausschreibungById } from "@/lib/stellenausschreibung";
 import { BLOB_TOKEN } from "@/lib/blob-token";
@@ -22,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   return new NextResponse(result.stream, {
     headers: {
       "Content-Type": result.blob.contentType || "application/pdf",
-      "Content-Disposition": `inline; filename="${(entry.pdfFilename ?? "Stellenausschreibung.pdf").replace(/"/g, "")}"`,
+      "Content-Disposition": contentDisposition(entry.pdfFilename ?? "Stellenausschreibung.pdf", "inline"),
     },
   });
 }

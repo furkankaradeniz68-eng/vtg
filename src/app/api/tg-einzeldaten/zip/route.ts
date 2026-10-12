@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { contentDisposition } from "@/lib/content-disposition";
 import { requireSession } from "@/lib/auth";
 import { fetchBcExportFile } from "@/lib/bc-client";
 import { recordEvent } from "@/lib/analytics";
@@ -38,7 +39,7 @@ export async function GET() {
   return new NextResponse(new Blob([file.buffer]), {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${file.filename.replace(/"/g, "")}"`,
+      "Content-Disposition": contentDisposition(file.filename),
       "Cache-Control": "no-store",
     },
   });

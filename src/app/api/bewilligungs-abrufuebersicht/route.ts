@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { contentDisposition } from "@/lib/content-disposition";
 import { requireSession } from "@/lib/auth";
 import { fetchBcGrantOverviewFile } from "@/lib/bc-client";
 import { recordEvent } from "@/lib/analytics";
@@ -39,7 +40,7 @@ export async function GET() {
   return new NextResponse(new Blob([file.buffer]), {
     headers: {
       "Content-Type": file.contentType?.includes("/") ? file.contentType : XLSX_CONTENT_TYPE,
-      "Content-Disposition": `attachment; filename="${file.filename.replace(/"/g, "")}"`,
+      "Content-Disposition": contentDisposition(file.filename),
       "Cache-Control": "no-store",
     },
   });

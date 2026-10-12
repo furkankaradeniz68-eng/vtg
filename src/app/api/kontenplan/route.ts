@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { contentDisposition } from "@/lib/content-disposition";
 import { get } from "@vercel/blob";
 import { getKontenplan, kontenplanLegacyPath } from "@/lib/kontenplan";
 import { BLOB_TOKEN } from "@/lib/blob-token";
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
   return new NextResponse(result.stream, {
     headers: {
       "Content-Type": result.blob.contentType || "application/pdf",
-      "Content-Disposition": `inline; filename="${entry.filename.replace(/"/g, "")}"`,
+      "Content-Disposition": contentDisposition(entry.filename, "inline"),
     },
   });
 }

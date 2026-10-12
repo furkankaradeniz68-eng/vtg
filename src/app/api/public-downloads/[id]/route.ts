@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { contentDisposition } from "@/lib/content-disposition";
 import { get } from "@vercel/blob";
 import { getPublicDownloadById } from "@/lib/public-downloads";
 import { BLOB_TOKEN } from "@/lib/blob-token";
@@ -23,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   return new NextResponse(result.stream, {
     headers: {
       "Content-Type": result.blob.contentType || "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${(entry.filename ?? entry.title).replace(/"/g, "")}"`,
+      "Content-Disposition": contentDisposition(entry.filename ?? entry.title),
     },
   });
 }

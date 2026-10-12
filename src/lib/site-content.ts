@@ -230,9 +230,22 @@ export async function getAllSiteContent(): Promise<Record<SiteContentSlug, SiteC
   return loadSiteContent();
 }
 
+// Auf der Live-Seite stand im gespeicherten "Überblick"-Text "Roßlauferstraße"
+// statt "Roßlaufstraße" (2026-10-12 vom Kunden gemeldet). Der gespeicherte
+// Blob-Text laesst sich nur ueber den Admin-Bereich aendern; bis dort jemand
+// speichert, wird der Fehler hier beim Lesen korrigiert. Der Admin-Editor
+// laedt ueber getSiteContent() - er zeigt also schon den korrekten Text, und
+// beim naechsten Speichern ist auch der Blob sauber.
+const TIPPFEHLER: [RegExp, string][] = [[/Roßlauferstra(ß|ss)e/gi, "Roßlaufstraße"]];
+
+function korrigiereTippfehler(text: string): string {
+  return TIPPFEHLER.reduce((t, [muster, korrekt]) => t.replace(muster, korrekt), text);
+}
+
 export async function getSiteContent(slug: SiteContentSlug): Promise<SiteContentEntry> {
   const entries = await loadSiteContent();
-  return entries[slug] ?? DEFAULT_ENTRIES[slug];
+  const entry = entries[slug] ?? DEFAULT_ENTRIES[slug];
+  return { ...entry, body: korrigiereTippfehler(entry.body) };
 }
 
 export type SiteContentChanges = {
