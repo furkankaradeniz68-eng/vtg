@@ -286,7 +286,9 @@ export async function updatePublicDownload(
   const entry = entries.find((e) => e.id === id);
   if (!entry) return;
 
-  if (changes.url && entry.blobPathname) {
+  // Den alten Blob nur loeschen, wenn die neue Datei unter einem anderen Pfad liegt:
+  // bei gleichem Dateinamen wurde er soeben ueberschrieben und waere sonst weg.
+  if (changes.url && entry.blobPathname && entry.blobPathname !== changes.blobPathname) {
     await del(entry.blobPathname, { token: BLOB_TOKEN }).catch(() => {});
   }
 

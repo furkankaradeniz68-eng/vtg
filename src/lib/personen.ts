@@ -920,7 +920,9 @@ export async function updatePerson(id: string, changes: PersonChanges): Promise<
   const entry = entries.find((e) => e.id === id);
   if (!entry) return;
 
-  if (changes.replaceImage && entry.blobPathname) {
+  // Nur loeschen, wenn das neue Bild unter einem anderen Pfad liegt (bei gleichem
+  // Dateinamen wurde der Blob soeben ueberschrieben).
+  if (changes.replaceImage && entry.blobPathname && entry.blobPathname !== changes.blobPathname) {
     await del(entry.blobPathname, { token: BLOB_TOKEN }).catch(() => {});
   }
 
