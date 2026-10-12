@@ -8,7 +8,16 @@ import { generateVobVolPdf } from "@/lib/vob-vol-pdf";
 // PDF neu, damit eine Bearbeitung im Bauleiter-Dashboard sofort im Download
 // sichtbar ist.
 export async function GET() {
-  const rows = await getAllVobVolRows();
+  // Sortierung im PDF: nach Jahr (aufsteigend), innerhalb eines Jahres nach
+  // ProdNr (Kundenwunsch 2026-10-12). Zeilen ohne Jahr stehen am Ende. Das
+  // Bauleiter-Dashboard behaelt seine eigene Sortierung/Jahresfilter.
+  const rows = [...(await getAllVobVolRows())].sort((a, b) => {
+    if (!a.jahr !== !b.jahr) return a.jahr ? -1 : 1;
+    return (
+      a.jahr.localeCompare(b.jahr, "de", { numeric: true }) ||
+      a.prodNr.localeCompare(b.prodNr, "de", { numeric: true })
+    );
+  });
   const pdfBytes = await generateVobVolPdf(rows);
 
   return new NextResponse(new Blob([new Uint8Array(pdfBytes)]), {

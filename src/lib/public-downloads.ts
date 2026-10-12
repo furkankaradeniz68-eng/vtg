@@ -72,7 +72,7 @@ const DEFAULT_ENTRIES: PublicDownloadEntry[] = [
     id: "seed-fachtagung-2025",
     category: "fachtagungen",
     title: "Fachtagung 2025 Klimawandel Herausforderung für Landwirtschaft und Landentwicklung",
-    url: "/downloads/fachtagungen/VTG_Satzung.pdf",
+    url: "/downloads/fachtagungen/Fachtagung_2025_Klimawandel_Herausforderung_für_Landwirtschaft_und_Landentwicklung.zip",
     updatedAt: new Date(0).toISOString(),
   },
   {
@@ -200,6 +200,33 @@ function ergaenzeNachtraeglicheSeeds(entries: PublicDownloadEntry[]): boolean {
   return geaendert;
 }
 
+// Korrekturen fuer Eintraege, die schon im Blob stehen. "Fachtagung 2025" zeigte
+// bisher faelschlich auf die Satzung (alter Platzhalter, siehe DEFAULT_ENTRIES);
+// die richtige Datei (Fachtagung_2025_...zip, Videos auf 720p verkleinert, 70 MB
+// statt 1,46 GB) liegt seit 2026-10-12 unter /downloads/fachtagungen. Nur wenn
+// der Eintrag noch den alten Platzhalter hat und kein Admin-Upload (blobPathname)
+// dahinter haengt - eine vom Admin ersetzte Datei bleibt unangetastet.
+const URL_KORREKTUREN: { id: string; vorher: string; nachher: string }[] = [
+  {
+    id: "seed-fachtagung-2025",
+    vorher: "/downloads/fachtagungen/VTG_Satzung.pdf",
+    nachher: "/downloads/fachtagungen/Fachtagung_2025_Klimawandel_Herausforderung_für_Landwirtschaft_und_Landentwicklung.zip",
+  },
+];
+
+function wendeUrlKorrekturenAn(entries: PublicDownloadEntry[]): boolean {
+  let geaendert = false;
+  for (const k of URL_KORREKTUREN) {
+    const entry = entries.find((e) => e.id === k.id);
+    if (entry && !entry.blobPathname && entry.url === k.vorher) {
+      entry.url = k.nachher;
+      entry.updatedAt = new Date().toISOString();
+      geaendert = true;
+    }
+  }
+  return geaendert;
+}
+
 // Keine Modul-weite Zwischenspeicherung, siehe downloads.ts: diese Metadaten
 // werden von der Anwendung selbst laufend veraendert.
 async function loadPublicDownloads(): Promise<PublicDownloadEntry[]> {
@@ -215,7 +242,9 @@ async function loadPublicDownloads(): Promise<PublicDownloadEntry[]> {
   }
   const text = await new Response(result.stream).text();
   const entries = JSON.parse(text) as PublicDownloadEntry[];
-  if (ergaenzeNachtraeglicheSeeds(entries)) await savePublicDownloads(entries);
+  const seedsErgaenzt = ergaenzeNachtraeglicheSeeds(entries);
+  const urlsKorrigiert = wendeUrlKorrekturenAn(entries);
+  if (seedsErgaenzt || urlsKorrigiert) await savePublicDownloads(entries);
   return entries;
 }
 

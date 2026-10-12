@@ -13,6 +13,7 @@
 import { put, get } from "@vercel/blob";
 import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
 import seedRowsRaw from "@/lib/vob-vol-seed.json";
+import nachtragRowsRaw from "@/lib/vob-vol-nachtrag-2026.json";
 
 const META_PATHNAME = "vob-vol.json";
 
@@ -46,6 +47,36 @@ export type VobVolRow = {
 // zu uebernehmen.
 const DEFAULT_ROWS: VobVolRow[] = seedRowsRaw as VobVolRow[];
 
+// Einmaliger Nachtrag vom 2026-10-12: Die aktuelle Informationen_VOB_VOL.pdf des
+// Kunden enthaelt 11 Zeilen, die im Blob fehlten (8 aus 2026 sowie 3 aus 2025:
+// Jucken, Eschfeld, Kroev). Sie werden beim ersten Laden angehaengt; ein kleiner
+// Marker-Blob verhindert, dass vom Bauleiter spaeter geloeschte Zeilen wieder
+// auftauchen oder der Nachtrag doppelt eingespielt wird.
+const NACHTRAG_ROWS = nachtragRowsRaw as VobVolRow[];
+const NACHTRAG_MARKER_PATHNAME = "vob-vol-nachtrag-2026-10-12.json";
+
+async function wendeNachtragAn(rows: VobVolRow[]): Promise<VobVolRow[]> {
+  const marker = await get(NACHTRAG_MARKER_PATHNAME, {
+    access: "private",
+    useCache: false,
+    token: BLOB_TOKEN,
+    abortSignal: blobAbortSignal(),
+  }).catch(() => null);
+  if (marker && marker.statusCode === 200) return rows;
+
+  const vorhanden = new Set(rows.map((r) => r.id));
+  const alle = [...rows, ...NACHTRAG_ROWS.filter((r) => !vorhanden.has(r.id))];
+  await saveVobVolRows(alle);
+  await put(NACHTRAG_MARKER_PATHNAME, JSON.stringify({ eingespielt: new Date().toISOString() }), {
+    access: "private",
+    contentType: "application/json",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    token: BLOB_TOKEN,
+  });
+  return alle;
+}
+
 // Keine Modul-weite Zwischenspeicherung, siehe umlage.ts: diese Daten werden
 // von der Anwendung selbst (Bauleiter-Dashboard) laufend veraendert und
 // muessen bei jedem PDF-Download aktuell sein.
@@ -58,10 +89,10 @@ async function loadVobVolRows(): Promise<VobVolRow[]> {
   }).catch(() => null);
   if (!result || result.statusCode !== 200) {
     await saveVobVolRows(DEFAULT_ROWS);
-    return DEFAULT_ROWS;
+    return wendeNachtragAn(DEFAULT_ROWS);
   }
   const text = await new Response(result.stream).text();
-  return JSON.parse(text) as VobVolRow[];
+  return wendeNachtragAn(JSON.parse(text) as VobVolRow[]);
 }
 
 async function saveVobVolRows(rows: VobVolRow[]): Promise<void> {
