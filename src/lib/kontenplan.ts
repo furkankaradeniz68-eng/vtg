@@ -64,6 +64,7 @@ export async function updateKontenplan(file: File): Promise<void> {
     access: "private",
     contentType: file.type || "application/pdf",
     addRandomSuffix: false,
+    allowOverwrite: true,
     token: BLOB_TOKEN,
   });
 

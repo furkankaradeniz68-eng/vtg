@@ -30,6 +30,7 @@ export async function POST(request: Request) {
     access: "private",
     contentType: file.type || "application/octet-stream",
     addRandomSuffix: false,
+    allowOverwrite: true,
     token: BLOB_TOKEN,
   });
 

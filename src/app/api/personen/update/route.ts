@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       access: "public",
       contentType: file.type || "application/octet-stream",
       addRandomSuffix: false,
+      allowOverwrite: true,
       token: BLOB_TOKEN,
     });
     image = blob.url;

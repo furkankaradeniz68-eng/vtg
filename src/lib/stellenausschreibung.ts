@@ -72,6 +72,7 @@ export async function addStellenausschreibung(input: {
       access: "private",
       contentType: input.pdfFile.type || "application/pdf",
       addRandomSuffix: false,
+      allowOverwrite: true,
       token: BLOB_TOKEN,
     });
     pdfBlobPathname = blob.pathname;
@@ -111,6 +112,7 @@ export async function updateStellenausschreibung(
       access: "private",
       contentType: input.pdfFile.type || "application/pdf",
       addRandomSuffix: false,
+      allowOverwrite: true,
       token: BLOB_TOKEN,
     });
     entry.pdfBlobPathname = blob.pathname;
