@@ -111,6 +111,19 @@ export async function getAllVobVolRows(): Promise<VobVolRow[]> {
   return [...rows].sort((a, b) => a.prodNr.localeCompare(b.prodNr, "de", { numeric: true }));
 }
 
+// Reihenfolge fuer das oeffentliche PDF: nach Jahr gruppiert (aelteste zuerst,
+// Zeilen ohne Jahr am Ende), innerhalb eines Jahres bleibt die gespeicherte
+// Eingabereihenfolge des Originals erhalten (stabile Sortierung). Die Original-
+// PDF ist nicht nach ProdNr sortiert, sondern nach Erfassung.
+export async function getVobVolRowsFuerPdf(): Promise<VobVolRow[]> {
+  const rows = await loadVobVolRows();
+  const jahrKey = (r: VobVolRow) => (r.jahr.match(/^\d{4}/)?.[0] ?? "9999");
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => jahrKey(a.row).localeCompare(jahrKey(b.row)) || a.index - b.index)
+    .map(({ row }) => row);
+}
+
 export async function getVobVolRow(id: string): Promise<VobVolRow | null> {
   const rows = await loadVobVolRows();
   return rows.find((r) => r.id === id) ?? null;
