@@ -6,6 +6,7 @@ import { verifyBauleiterCredential } from "@/lib/bauleiter-credentials";
 
 type DlrCredential = { username: string; passwordHash: string; dlrNr: string };
 type AdminCredential = { username: string; passwordHash: string };
+type DlrAlleCredential = { username: string; passwordHash: string };
 
 // Abonnent-Logins kommen seit dem BC-Umstieg nicht mehr aus dieser Datei,
 // sondern live aus dem BC-Snapshot (homepageUsername/homepagePassword,
@@ -14,6 +15,9 @@ type AdminCredential = { username: string; passwordHash: string };
 type CredentialsData = {
   dlr: DlrCredential[];
   admin: AdminCredential[];
+  // Interne Logins mit DLR-Rechten (kein Admin-Dashboard), aber Sicht auf alle
+  // Mandanten. Optional, damit aeltere CREDENTIALS_JSON-Werte weiter laufen.
+  dlrAlle?: DlrAlleCredential[];
 };
 
 let cached: CredentialsData | null = null;
@@ -37,7 +41,7 @@ function timingSafePlaintextEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(aHash, bHash);
 }
 
-export type VerifiedUser = { role: SessionRole; username: string } | null;
+export type VerifiedUser = { role: SessionRole; username: string; alleMandanten?: boolean } | null;
 
 export async function verifyCredentials(username: string, password: string): Promise<VerifiedUser> {
   const creds = loadCredentials();
@@ -46,6 +50,11 @@ export async function verifyCredentials(username: string, password: string): Pro
   const admin = creds.admin.find((a) => a.username === name);
   if (admin && (await bcrypt.compare(password, admin.passwordHash))) {
     return { role: "admin", username: admin.username };
+  }
+
+  const dlrAlle = creds.dlrAlle?.find((d) => d.username === name);
+  if (dlrAlle && (await bcrypt.compare(password, dlrAlle.passwordHash))) {
+    return { role: "dlr", username: dlrAlle.username, alleMandanten: true };
   }
 
   const dlr = creds.dlr.find((d) => d.username === name);

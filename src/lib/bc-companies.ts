@@ -170,12 +170,14 @@ async function getCompanyNrsByKreis(): Promise<Record<string, string[]>> {
 
 // Zugriffsregeln (analog zur urspruenglichen WP-Rollenlogik):
 // Abonnent sieht nur die eigene Produktnummer (username == produkt_nr),
-// DLR sieht nur Verfahren seines Dienstsitzes, Admin hat vollen Zugriff.
+// DLR sieht nur Verfahren seines Dienstsitzes (ausser DLR-Logins mit
+// alleMandanten), Admin hat vollen Zugriff.
 export async function istVerfahrenErreichbar(
-  session: { role: SessionRole; username: string },
+  session: { role: SessionRole; username: string; alleMandanten?: boolean },
   nr: string,
 ): Promise<boolean> {
   if (session.role === "admin") return true;
+  if (session.role === "dlr" && session.alleMandanten) return true;
   if (session.role === "abonnent") {
     return nr === session.username || getVerknuepfteNrs(session.username).includes(nr);
   }

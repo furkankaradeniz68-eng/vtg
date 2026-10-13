@@ -48,8 +48,9 @@ function DownloadListe({
 
 export default async function VerfahrensauswahlPage() {
   const session = await requireInternSession();
-  const isAdmin = session.role === "admin";
-  const list = isAdmin ? await getAllVerfahren() : ((await getVerfahrenByKreis())[session.username] ?? []);
+  // Admin und DLR-Logins mit alleMandanten (z.B. vtggs) sehen alle Mandanten.
+  const sieheAlle = session.role === "admin" || !!session.alleMandanten;
+  const list = sieheAlle ? await getAllVerfahren() : ((await getVerfahrenByKreis())[session.username] ?? []);
 
   const nrToName = new Map(list.map((v) => [v.nr, v.name]));
   const downloadsByMandant = new Map<string, DownloadEntry[]>();
@@ -63,13 +64,13 @@ export default async function VerfahrensauswahlPage() {
     }
   }
 
-  // Admin sieht alle Kreise auf einmal — damit die Liste nicht unuebersichtlich
+  // Wer alle Mandanten sieht, bekommt alle Kreise auf einmal — damit die Liste nicht unuebersichtlich
   // lang wird, hier zusaetzlich nach DLR-Dienstsitz gruppieren und als
   // aufklappbare Abschnitte darstellen. Ein Mandant kann (ueber
   // DLR_ZIFFER_ZU_DIENSTSITZ) mehreren Dienstsitzen zugeordnet sein, dann
   // erscheint er dort auch mehrfach — analog zur bestehenden Kreis-Logik.
   let downloadsByDienstsitz: [string, Map<string, DownloadEntry[]>][] = [];
-  if (isAdmin && downloadsByMandant.size > 0) {
+  if (sieheAlle && downloadsByMandant.size > 0) {
     const byKreis = await getVerfahrenByKreis();
     const gruppiert = new Map<string, Map<string, DownloadEntry[]>>();
     for (const [dienstsitz, verfahrenListe] of Object.entries(byKreis)) {
@@ -88,7 +89,7 @@ export default async function VerfahrensauswahlPage() {
     <>
       <PageHero title="Verfahrensauswahl" />
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-        {isAdmin
+        {sieheAlle
           ? downloadsByDienstsitz.length > 0 && (
               <div className="mb-10">
                 <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Mitglieder-Downloads</h2>
