@@ -7,6 +7,10 @@ import { BLOB_TOKEN } from "@/lib/blob-token";
 import { getDownloadById, isDownloadActive, recordDownload } from "@/lib/downloads";
 import { recordEvent } from "@/lib/analytics";
 
+// Grosse Dateien (100-200 MB) werden durch diese Funktion gestreamt; das
+// Standard-Zeitlimit koennte bei langsamen Verbindungen zu knapp sein.
+export const maxDuration = 300;
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
   const { id } = await params;

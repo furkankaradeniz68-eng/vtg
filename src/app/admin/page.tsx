@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import SimpleTable from "@/components/SimpleTable";
 import PaginatedTable from "@/components/PaginatedTable";
-import AbonnentSearchSelect from "@/components/AbonnentSearchSelect";
+import DownloadUploadForm from "@/components/DownloadUploadForm";
 import PersonenSearchTable from "@/components/PersonenSearchTable";
 import { listBcAbonnenten, getLastSync, formatDateTime } from "@/lib/bc-companies";
 import { getAllDownloads, isDownloadActive } from "@/lib/downloads";
@@ -404,42 +404,7 @@ export default async function AdminDashboardPage({
       ) : tab === "mitglieder" ? (
         <>
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Neue Datei zuweisen</h2>
-          <form
-            action="/api/downloads/upload"
-            method="POST"
-            encType="multipart/form-data"
-            className="mb-12 flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-4"
-          >
-            <div>
-              <label htmlFor="username" className="mb-1 block text-sm font-medium text-neutral-800">
-                Benutzer
-              </label>
-              <AbonnentSearchSelect abonnenten={abonnenten} name="username" />
-            </div>
-            <div>
-              <label htmlFor="file" className="mb-1 block text-sm font-medium text-neutral-800">
-                Datei
-              </label>
-              <input id="file" name="file" type="file" required className={inputClass} />
-            </div>
-            <div>
-              <label htmlFor="expiryDays" className="mb-1 block text-sm font-medium text-neutral-800">
-                Gültig für (Tage)
-              </label>
-              <input
-                id="expiryDays"
-                name="expiryDays"
-                type="number"
-                min={1}
-                defaultValue={30}
-                required
-                className={inputClass}
-              />
-            </div>
-            <button type="submit" className={`mt-2 ${primaryButtonClass}`}>
-              Hochladen
-            </button>
-          </form>
+          <DownloadUploadForm abonnenten={abonnenten} />
 
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Zugewiesene Downloads</h2>
           {downloads.length > 0 ? (
