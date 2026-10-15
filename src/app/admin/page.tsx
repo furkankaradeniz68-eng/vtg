@@ -16,6 +16,8 @@ import { getUmlageRows } from "@/lib/umlage";
 import { getStellenausschreibungen } from "@/lib/stellenausschreibung";
 import { getSiteImage } from "@/lib/site-images";
 import { getUserStats, getRecentEvents } from "@/lib/analytics";
+import { getStorageUsage } from "@/lib/storage-usage";
+import StorageOverview from "@/components/StorageOverview";
 import AnalyticsOverview from "@/components/AnalyticsOverview";
 import { getLinksByCategory, getLinkCategoryNames } from "@/lib/links";
 import DirectUploadForm from "@/components/DirectUploadForm";
@@ -112,6 +114,7 @@ export default async function AdminDashboardPage({
   const umlageTextMeta = SITE_CONTENT_PAGES.find((p) => p.slug === "umlage")!;
   const userStats = tab === "analytics" ? await getUserStats() : [];
   const recentEvents = tab === "analytics" ? await getRecentEvents(50) : [];
+  const storageUsage = tab === "analytics" ? await getStorageUsage().catch(() => null) : null;
   const linkCategories = tab === "links" ? await getLinksByCategory() : [];
   const linkCategoryNames = tab === "links" ? await getLinkCategoryNames() : [];
 
@@ -544,6 +547,11 @@ export default async function AdminDashboardPage({
         </>
       ) : tab === "analytics" ? (
         <>
+          {storageUsage ? (
+            <StorageOverview usage={storageUsage} />
+          ) : (
+            <p className="mb-12 text-sm text-neutral-600">Die Speicherbelegung konnte gerade nicht ermittelt werden.</p>
+          )}
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Nutzer-Übersicht</h2>
           <p className="mb-6 max-w-2xl text-sm text-neutral-600">
             Logins und Downloads je Benutzer seit Einführung des Analytics-Trackings. Erfasst werden Logins sowie
