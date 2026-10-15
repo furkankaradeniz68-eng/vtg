@@ -67,12 +67,11 @@ async function saveUmlageRows(rows: UmlageRow[]): Promise<void> {
   });
 }
 
-// Absteigend sortiert (neuestes Jahr zuerst), passend zur bisherigen
-// Anzeigereihenfolge der hart codierten Tabelle... eigentlich aufsteigend
-// (2017 zuerst) - siehe urspruengliches Array. Wir behalten aufsteigend bei.
+// Absteigend nach Jahr sortiert: neuestes Jahr zuerst (Kundenwunsch 2026-10-15),
+// bei gleichem Jahr bleibt die gespeicherte Reihenfolge erhalten.
 export async function getUmlageRows(): Promise<UmlageRow[]> {
   const rows = await loadUmlageRows();
-  return [...rows].sort((a, b) => a.year - b.year);
+  return [...rows].sort((a, b) => b.year - a.year);
 }
 
 export async function getUmlageRow(id: string): Promise<UmlageRow | undefined> {
