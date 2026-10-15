@@ -6,7 +6,7 @@ import PaginatedTable from "@/components/PaginatedTable";
 import DownloadUploadForm from "@/components/DownloadUploadForm";
 import PersonenSearchTable from "@/components/PersonenSearchTable";
 import { listBcAbonnenten, getLastSync, formatDateTime } from "@/lib/bc-companies";
-import { getAllDownloads, isDownloadActive } from "@/lib/downloads";
+import { formatFileSize, getAllDownloads, getDownloadSizes, isDownloadActive } from "@/lib/downloads";
 import { getPublicDownloadsByCategory, type PublicDownloadCategory } from "@/lib/public-downloads";
 import { getAllPersonen, PERSON_PAGES } from "@/lib/personen";
 import { getAllSiteContent, SITE_CONTENT_PAGES } from "@/lib/site-content";
@@ -96,6 +96,7 @@ export default async function AdminDashboardPage({
 
   const abonnenten = await listBcAbonnenten();
   const downloads = await getAllDownloads();
+  const downloadSizes = tab === "mitglieder" ? await getDownloadSizes(downloads) : {};
   const lastSync = await getLastSync();
   const publicEntries = tab === "website" ? await getPublicDownloadsByCategory(activeCategory) : [];
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === activeCategory)!;
@@ -410,10 +411,11 @@ export default async function AdminDashboardPage({
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Zugewiesene Downloads</h2>
           {downloads.length > 0 ? (
             <SimpleTable
-              columns={["Benutzer", "Datei", "Hochgeladen", "Läuft ab", "Status", "Downloads", ""]}
+              columns={["Benutzer", "Datei", "Größe", "Hochgeladen", "Läuft ab", "Status", "Downloads", ""]}
               rows={downloads.map((d) => [
                 d.username,
                 d.filename,
+                downloadSizes[d.id] !== undefined ? formatFileSize(downloadSizes[d.id]) : "–",
                 formatDate(d.uploadedAt),
                 formatDate(d.expiresAt),
                 isDownloadActive(d) ? "Aktiv" : "Abgelaufen",

@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     username: body.username,
     filename: body.filename,
     blobPathname,
+    size: blob.size,
     uploadedAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + expiryDays * 24 * 60 * 60 * 1000).toISOString(),
     downloadCount: 0,
