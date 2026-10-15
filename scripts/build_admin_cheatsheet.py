@@ -20,6 +20,25 @@ from PIL import Image as PILImage
 OUTPUT_PATH = os.path.expanduser("~/Desktop/VTG-RLP-Admin-Anleitung.pdf")
 IMG_DIR = os.path.expanduser("~/Desktop/vtg-screenshots")
 
+LOGIN_CSV = os.environ.get("VTG_INTERN_CSV", "/Volumes/SSK Drive /VTG/VTG-Intern.csv")
+# Reihenfolge und Rolle der internen Logins in der Anleitung
+ADMIN_LOGIN = "vtgadmin"
+DLR_LOGINS = ["ADD.RLP", "vtggs", "vtgnews"]
+
+
+def lade_logins():
+    """Liest die Zugangsdaten der internen Logins aus der externen Login-Liste."""
+    with open(LOGIN_CSV, encoding="utf-8") as f:
+        daten = {}
+        for line in f.read().splitlines()[1:]:
+            user, _, pw = line.partition(",")
+            daten[user.strip()] = pw.strip()
+    fehlend = [u for u in [ADMIN_LOGIN, *DLR_LOGINS] if u not in daten]
+    if fehlend:
+        raise SystemExit(f"Login(s) {', '.join(fehlend)} nicht in {LOGIN_CSV} gefunden.")
+    return daten
+
+
 YELLOW = colors.HexColor("#F5B800")
 ORANGE = colors.HexColor("#E0631E")
 DARK = colors.HexColor("#1F2328")
@@ -187,14 +206,25 @@ def build():
     ))
 
     # --- Zugangsdaten ---
+    # Der Admin-Login wird aus der externen Login-Liste gelesen (VTG-Intern.csv),
+    # damit keine Passwoerter im Repository stehen.
+    logins = lade_logins()
     cred_table = Table(
         [
-            [Paragraph("<b>Benutzername</b>", label_style), Paragraph("<b>Kennwort</b>", label_style)],
-            [Paragraph("ADD.RLP", body_style), Paragraph("54290.Trier", body_style)],
-            [Paragraph("vtggs", body_style), Paragraph("Pw2019.hp", body_style)],
-            [Paragraph("vtgnews", body_style), Paragraph("Pw2019.news", body_style)],
+            [
+                Paragraph("<b>Benutzername</b>", label_style),
+                Paragraph("<b>Kennwort</b>", label_style),
+                Paragraph("<b>Rechte</b>", label_style),
+            ],
+            [Paragraph(ADMIN_LOGIN, body_style), Paragraph(logins[ADMIN_LOGIN], body_style),
+             Paragraph("Admin (Dashboard)", body_style)],
+            *[
+                [Paragraph(u, body_style), Paragraph(logins[u], body_style),
+                 Paragraph("wie DLR, alle Mandanten", body_style)]
+                for u in DLR_LOGINS
+            ],
         ],
-        colWidths=[6 * cm, 6 * cm],
+        colWidths=[5 * cm, 5 * cm, 6 * cm],
     )
     cred_table.setStyle(TableStyle([
         ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#BFBFBF")),
@@ -212,12 +242,11 @@ def build():
             [cred_table],
             [Spacer(1, 3)],
             [Paragraph(
-                "Hinweis: Zugriff auf <font face='Courier'>/admin</font> selbst erfordert die Admin-Rolle; "
-                "laut Analytics-Übersicht im Dashboard ist „vtggs“ bestätigt als Admin-Rolle hinterlegt. Bei "
-                "„ADD.RLP“ und „vtgnews“ ist nicht geprüft, ob sie ebenfalls Admin- oder (nur) "
-                "DLR-Mitgliederbereich-Rechte haben &ndash; bei Unsicherheit bitte intern gegenprüfen. Dieses "
-                "Dokument enthält Klartext-Zugangsdaten &ndash; vertraulich behandeln und nicht "
-                "unverschlüsselt weiterleiten.",
+                "Hinweis: Das Admin-Dashboard <font face='Courier'>/admin</font> und alle Bearbeitungsfunktionen "
+                "sind ausschlie&szlig;lich mit dem Admin-Login <b>vtgadmin</b> nutzbar. ADD.RLP, vtggs und "
+                "vtgnews sind einem DLR gleichgestellt (sehen alle Mandanten, haben aber kein Admin-Dashboard). "
+                "Dieses Dokument enth&auml;lt Klartext-Zugangsdaten &ndash; vertraulich behandeln und nicht "
+                "unverschl&uuml;sselt weiterleiten.",
                 note_style,
             )],
         ],
