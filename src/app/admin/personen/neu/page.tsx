@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PERSON_PAGES } from "@/lib/personen";
+import DirectUploadForm from "@/components/DirectUploadForm";
 
 export const metadata: Metadata = { title: "Neue Person | VTG Rheinland-Pfalz" };
 
@@ -16,7 +17,7 @@ export default function NeuePersonPage() {
       </Link>
       <h1 className="mb-6 font-heading text-lg font-bold text-neutral-900">Neue Person hinzufügen</h1>
 
-      <form
+      <DirectUploadForm
         action="/api/personen/add"
         method="POST"
         encType="multipart/form-data"
@@ -68,12 +69,12 @@ export default function NeuePersonPage() {
         </div>
         <div>
           <label htmlFor="image" className={labelClass}>Foto (optional)</label>
-          <input id="image" name="image" type="file" accept="image/*" className={inputClass} />
+          <input id="image" name="image" type="file" data-access="public" accept="image/*" className={inputClass} />
         </div>
         <button type="submit" className={`mt-2 self-start ${primaryButtonClass}`}>
           Person hinzufügen
         </button>
-      </form>
+      </DirectUploadForm>
     </section>
   );
 }

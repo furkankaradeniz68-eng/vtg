@@ -54,23 +54,17 @@ export function kontenplanLegacyPath(): string {
   return LEGACY_STATIC_PATH;
 }
 
-export async function updateKontenplan(file: File): Promise<void> {
+// Die Datei liegt beim Aufruf bereits im Blob-Speicher (siehe storeUpload); hier
+// werden nur der Eintrag aktualisiert und die vorherige Datei geloescht.
+export async function updateKontenplan(upload: { pathname: string; filename: string }): Promise<void> {
   const existing = await loadKontenplan();
-  if (existing.blobPathname) {
+  if (existing.blobPathname && existing.blobPathname !== upload.pathname) {
     await del(existing.blobPathname, { token: BLOB_TOKEN }).catch(() => {});
   }
 
-  const blob = await put(`kontenplan/${Date.now()}-${file.name}`, file, {
-    access: "private",
-    contentType: file.type || "application/pdf",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    token: BLOB_TOKEN,
-  });
-
   await saveKontenplan({
-    blobPathname: blob.pathname,
-    filename: file.name,
+    blobPathname: upload.pathname,
+    filename: upload.filename,
     updatedAt: new Date().toISOString(),
   });
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import DirectUploadForm from "@/components/DirectUploadForm";
 
 export const metadata: Metadata = { title: "Neue Stellenausschreibung | VTG Rheinland-Pfalz" };
 
@@ -15,7 +16,7 @@ export default function NeueStellenausschreibungPage() {
       </Link>
       <h1 className="mb-6 font-heading text-lg font-bold text-neutral-900">Neue Stellenausschreibung</h1>
 
-      <form
+      <DirectUploadForm
         action="/api/stellenausschreibung/add"
         method="POST"
         encType="multipart/form-data"
@@ -36,7 +37,7 @@ export default function NeueStellenausschreibungPage() {
         <button type="submit" className={`mt-2 self-start ${primaryButtonClass}`}>
           Hinzufügen
         </button>
-      </form>
+      </DirectUploadForm>
     </section>
   );
 }

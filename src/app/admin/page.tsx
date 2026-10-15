@@ -18,6 +18,7 @@ import { getSiteImage } from "@/lib/site-images";
 import { getUserStats, getRecentEvents } from "@/lib/analytics";
 import AnalyticsOverview from "@/components/AnalyticsOverview";
 import { getLinksByCategory, getLinkCategoryNames } from "@/lib/links";
+import DirectUploadForm from "@/components/DirectUploadForm";
 
 export const metadata: Metadata = { title: "Admin-Dashboard | VTG Rheinland-Pfalz" };
 
@@ -217,7 +218,7 @@ export default async function AdminDashboardPage({
           <p className="mb-6 max-w-2xl text-sm text-neutral-600">
             Das Bild, das oben auf jeder Seite im Kopfbereich erscheint.
           </p>
-          <form
+          <DirectUploadForm
             action="/api/site-images/update"
             method="POST"
             encType="multipart/form-data"
@@ -235,12 +236,12 @@ export default async function AdminDashboardPage({
               <label htmlFor="image" className="mb-1 block text-sm font-medium text-neutral-800">
                 Neues Bild hochladen
               </label>
-              <input id="image" name="image" type="file" accept="image/*" required className={inputClass} />
+              <input id="image" name="image" type="file" data-access="public" accept="image/*" required className={inputClass} />
             </div>
             <button type="submit" className={primaryButtonClass}>
               Speichern
             </button>
-          </form>
+          </DirectUploadForm>
         </>
       ) : tab === "mitgliederbereich" && kontenplan ? (
         <>
@@ -248,7 +249,7 @@ export default async function AdminDashboardPage({
           <p className="mb-6 max-w-2xl text-sm text-neutral-600">
             Die im Mitgliederbereich verlinkte Kontenplan-Datei.
           </p>
-          <form
+          <DirectUploadForm
             action="/api/kontenplan/update"
             method="POST"
             encType="multipart/form-data"
@@ -269,7 +270,7 @@ export default async function AdminDashboardPage({
             <button type="submit" className={primaryButtonClass}>
               Speichern
             </button>
-          </form>
+          </DirectUploadForm>
 
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Energiekostenzuschlag</h2>
           <p className="mb-6 max-w-2xl text-sm text-neutral-600">
@@ -576,7 +577,7 @@ export default async function AdminDashboardPage({
           </div>
 
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">Neuen Download hinzufügen</h2>
-          <form
+          <DirectUploadForm
             action="/api/public-downloads/add"
             method="POST"
             encType="multipart/form-data"
@@ -598,7 +599,7 @@ export default async function AdminDashboardPage({
             <button type="submit" className={`mt-2 self-start ${primaryButtonClass}`}>
               Hinzufügen
             </button>
-          </form>
+          </DirectUploadForm>
 
           <h2 className="mb-4 font-heading text-lg font-bold text-neutral-900">
             Bestehende Downloads — {activeCategoryMeta.label}
@@ -607,7 +608,7 @@ export default async function AdminDashboardPage({
             <div className="flex flex-col gap-4">
               {publicEntries.map((entry) => (
                 <div key={entry.id} className="rounded-lg border border-neutral-200 bg-white p-4">
-                  <form
+                  <DirectUploadForm
                     action="/api/public-downloads/update"
                     method="POST"
                     encType="multipart/form-data"
@@ -638,7 +639,7 @@ export default async function AdminDashboardPage({
                         Speichern
                       </button>
                     </div>
-                  </form>
+                  </DirectUploadForm>
                   <form action="/api/public-downloads/delete" method="POST" className="mt-2">
                     <input type="hidden" name="id" value={entry.id} />
                     <input type="hidden" name="category" value={activeCategory} />

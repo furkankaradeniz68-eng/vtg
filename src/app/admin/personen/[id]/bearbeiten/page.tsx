@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPersonById, PERSON_PAGES } from "@/lib/personen";
+import DirectUploadForm from "@/components/DirectUploadForm";
 
 export const metadata: Metadata = { title: "Person bearbeiten | VTG Rheinland-Pfalz" };
 
@@ -36,7 +37,7 @@ export default async function PersonBearbeitenPage({
         />
       )}
 
-      <form
+      <DirectUploadForm
         action="/api/personen/update"
         method="POST"
         encType="multipart/form-data"
@@ -90,7 +91,7 @@ export default async function PersonBearbeitenPage({
         </div>
         <div>
           <label htmlFor="image" className={labelClass}>Foto ersetzen (optional)</label>
-          <input id="image" name="image" type="file" accept="image/*" className={inputClass} />
+          <input id="image" name="image" type="file" data-access="public" accept="image/*" className={inputClass} />
         </div>
         {person.image && (
           <label className="flex items-center gap-2 text-sm text-neutral-700">
@@ -101,7 +102,7 @@ export default async function PersonBearbeitenPage({
         <button type="submit" className={`mt-2 self-start ${primaryButtonClass}`}>
           Speichern
         </button>
-      </form>
+      </DirectUploadForm>
 
       <form action="/api/personen/delete" method="POST" className="mt-4">
         <input type="hidden" name="id" value={person.id} />

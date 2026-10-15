@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { requireAdminSession } from "@/lib/auth";
 import { addPerson, getPersonenByPage, PERSON_PAGES, type PersonPageSlug } from "@/lib/personen";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { storeUpload } from "@/lib/direct-upload";
 
 const PAGE_SLUGS = PERSON_PAGES.map((p) => p.slug);
 
@@ -18,7 +17,6 @@ export async function POST(request: Request) {
   const page = form.get("page");
   const name = str(form, "name");
   const role = str(form, "role");
-  const file = form.get("image");
 
   if (typeof page !== "string" || !PAGE_SLUGS.includes(page as PersonPageSlug) || !name || !role) {
     return NextResponse.json({ error: "Ungültige Eingabe." }, { status: 400 });
@@ -28,16 +26,13 @@ export async function POST(request: Request) {
 
   let image: string | undefined;
   let blobPathname: string | undefined;
-  if (file instanceof File && file.size > 0) {
-    const blob = await put(`personen/${id}-${file.name}`, file, {
-      access: "public",
-      contentType: file.type || "application/octet-stream",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      token: BLOB_TOKEN,
-    });
-    image = blob.url;
-    blobPathname = blob.pathname;
+  const upload = await storeUpload(form, "image", {
+    access: "public",
+    legacyPathname: (name) => `personen/${id}-${name}`,
+  });
+  if (upload) {
+    image = upload.url;
+    blobPathname = upload.pathname;
   }
 
   const existing = await getPersonenByPage(page as PersonPageSlug);

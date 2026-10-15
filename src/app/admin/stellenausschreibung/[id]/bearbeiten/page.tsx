@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getStellenausschreibungById } from "@/lib/stellenausschreibung";
+import DirectUploadForm from "@/components/DirectUploadForm";
 
 export const metadata: Metadata = { title: "Stellenausschreibung bearbeiten | VTG Rheinland-Pfalz" };
 
@@ -34,7 +35,7 @@ export default async function StellenausschreibungBearbeitenPage({
         </p>
       )}
 
-      <form
+      <DirectUploadForm
         action="/api/stellenausschreibung/update"
         method="POST"
         encType="multipart/form-data"
@@ -69,7 +70,7 @@ export default async function StellenausschreibungBearbeitenPage({
         <button type="submit" className={`mt-2 self-start ${primaryButtonClass}`}>
           Speichern
         </button>
-      </form>
+      </DirectUploadForm>
 
       <form action="/api/stellenausschreibung/delete" method="POST" className="mt-4">
         <input type="hidden" name="id" value={entry.id} />

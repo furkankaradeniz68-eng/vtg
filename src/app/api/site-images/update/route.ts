@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { requireAdminSession } from "@/lib/auth";
 import { updateSiteImage, type SiteImageKey } from "@/lib/site-images";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { storeUpload } from "@/lib/direct-upload";
 
 const KEYS: SiteImageKey[] = ["hero"];
 
@@ -11,21 +10,20 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const key = form.get("key");
-  const file = form.get("image");
 
-  if (typeof key !== "string" || !KEYS.includes(key as SiteImageKey) || !(file instanceof File) || file.size === 0) {
+  if (typeof key !== "string" || !KEYS.includes(key as SiteImageKey)) {
     return NextResponse.json({ error: "Ungültige Eingabe." }, { status: 400 });
   }
 
-  const blob = await put(`site-images/${key}-${file.name}`, file, {
+  const upload = await storeUpload(form, "image", {
     access: "public",
-    contentType: file.type || "application/octet-stream",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    token: BLOB_TOKEN,
+    legacyPathname: (name) => `site-images/${key}-${name}`,
   });
+  if (!upload) {
+    return NextResponse.json({ error: "Ungültige Eingabe." }, { status: 400 });
+  }
 
-  await updateSiteImage(key as SiteImageKey, blob.url, blob.pathname, file.name);
+  await updateSiteImage(key as SiteImageKey, upload.url, upload.pathname, upload.filename);
 
   return NextResponse.redirect(new URL("/admin?tab=seiteninhalte", request.url), 303);
 }

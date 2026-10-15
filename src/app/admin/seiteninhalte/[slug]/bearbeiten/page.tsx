@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSiteContent, siteContentLabel, SITE_CONTENT_PAGES, type SiteContentSlug } from "@/lib/site-content";
+import DirectUploadForm from "@/components/DirectUploadForm";
 
 export const metadata: Metadata = { title: "Seiteninhalt bearbeiten | VTG Rheinland-Pfalz" };
 
@@ -42,7 +43,7 @@ export default async function SeiteninhaltBearbeitenPage({
         />
       )}
 
-      <form
+      <DirectUploadForm
         action="/api/site-content/update"
         method="POST"
         encType="multipart/form-data"
@@ -67,7 +68,7 @@ export default async function SeiteninhaltBearbeitenPage({
         {pageMeta.hasImage && (
           <div>
             <label htmlFor="image" className={labelClass}>Bild ersetzen (optional)</label>
-            <input id="image" name="image" type="file" accept="image/*" className={inputClass} />
+            <input id="image" name="image" type="file" data-access="public" accept="image/*" className={inputClass} />
             {content.image && (
               <label className="mt-2 flex items-center gap-2 text-sm text-neutral-700">
                 <input type="checkbox" name="removeImage" />
@@ -79,7 +80,7 @@ export default async function SeiteninhaltBearbeitenPage({
         <button type="submit" className={`mt-2 self-start ${primaryButtonClass}`}>
           Speichern
         </button>
-      </form>
+      </DirectUploadForm>
     </section>
   );
 }

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { requireAdminSession } from "@/lib/auth";
 import { updateSiteContent, SITE_CONTENT_PAGES, type SiteContentSlug } from "@/lib/site-content";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { storeUpload } from "@/lib/direct-upload";
 
 const SLUGS = SITE_CONTENT_PAGES.map((p) => p.slug);
 
@@ -12,7 +11,6 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const slug = form.get("slug");
   const body = form.get("body");
-  const file = form.get("image");
 
   if (
     typeof slug !== "string" ||
@@ -26,16 +24,13 @@ export async function POST(request: Request) {
   let image: string | undefined;
   let blobPathname: string | undefined;
   let replaceImage = false;
-  if (file instanceof File && file.size > 0) {
-    const blob = await put(`site-content/${slug}-${file.name}`, file, {
-      access: "public",
-      contentType: file.type || "application/octet-stream",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      token: BLOB_TOKEN,
-    });
-    image = blob.url;
-    blobPathname = blob.pathname;
+  const upload = await storeUpload(form, "image", {
+    access: "public",
+    legacyPathname: (name) => `site-content/${slug}-${name}`,
+  });
+  if (upload) {
+    image = upload.url;
+    blobPathname = upload.pathname;
     replaceImage = true;
   } else if (form.get("removeImage") === "on") {
     image = undefined;

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { requireAdminSession } from "@/lib/auth";
 import { updatePublicDownload } from "@/lib/public-downloads";
-import { BLOB_TOKEN } from "@/lib/blob-token";
+import { storeUpload } from "@/lib/direct-upload";
 
 export async function POST(request: Request) {
   await requireAdminSession();
@@ -12,7 +11,6 @@ export async function POST(request: Request) {
   const category = form.get("category");
   const title = form.get("title");
   const description = form.get("description");
-  const file = form.get("file");
 
   if (typeof id !== "string" || !id || typeof title !== "string" || !title.trim()) {
     return NextResponse.json({ error: "Ungültige Eingabe." }, { status: 400 });
@@ -21,18 +19,14 @@ export async function POST(request: Request) {
   let url: string | undefined;
   let blobPathname: string | undefined;
   let filename: string | undefined;
-  if (file instanceof File && file.size > 0) {
-    blobPathname = `public-downloads/${category}/${id}-${file.name}`;
-    const blob = await put(blobPathname, file, {
-      access: "private",
-      contentType: file.type || "application/octet-stream",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      token: BLOB_TOKEN,
-    });
+  const upload = await storeUpload(form, "file", {
+    access: "private",
+    legacyPathname: (name) => `public-downloads/${category}/${id}-${name}`,
+  });
+  if (upload) {
     url = `/api/public-downloads/${id}`;
-    blobPathname = blob.pathname;
-    filename = file.name;
+    blobPathname = upload.pathname;
+    filename = upload.filename;
   }
 
   await updatePublicDownload(id, {

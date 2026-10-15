@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth";
 import { updateStellenausschreibung } from "@/lib/stellenausschreibung";
+import { storeUpload } from "@/lib/direct-upload";
 
 export async function POST(request: Request) {
   await requireAdminSession();
@@ -9,7 +10,6 @@ export async function POST(request: Request) {
   const id = form.get("id");
   const title = form.get("title");
   const description = form.get("description");
-  const pdfFile = form.get("pdf");
   const removePdf = form.get("removePdf") === "on";
 
   if (
@@ -23,10 +23,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ungültige Eingabe." }, { status: 400 });
   }
 
+  const pdf = await storeUpload(form, "pdf", {
+    access: "private",
+    legacyPathname: (name) => `stellenausschreibung/${id}-${name}`,
+  });
+
   await updateStellenausschreibung(id, {
     title: title.trim(),
     description: description.trim(),
-    pdfFile: pdfFile instanceof File && pdfFile.size > 0 ? pdfFile : undefined,
+    pdf: pdf ?? undefined,
     removePdf,
   });
 

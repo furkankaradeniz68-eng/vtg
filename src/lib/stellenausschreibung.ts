@@ -57,27 +57,16 @@ export async function getStellenausschreibungById(id: string): Promise<Stellenau
   return entries.find((e) => e.id === id);
 }
 
+// Das PDF liegt beim Aufruf bereits im Blob-Speicher (siehe storeUpload).
 export async function addStellenausschreibung(input: {
   title: string;
   description: string;
-  pdfFile?: File;
+  pdf?: { pathname: string; filename: string };
 }): Promise<void> {
   const entries = await loadEntries();
 
-  let pdfBlobPathname: string | undefined;
-  let pdfFilename: string | undefined;
-  if (input.pdfFile && input.pdfFile.size > 0) {
-    const id = crypto.randomUUID();
-    const blob = await put(`stellenausschreibung/${id}-${input.pdfFile.name}`, input.pdfFile, {
-      access: "private",
-      contentType: input.pdfFile.type || "application/pdf",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      token: BLOB_TOKEN,
-    });
-    pdfBlobPathname = blob.pathname;
-    pdfFilename = input.pdfFile.name;
-  }
+  const pdfBlobPathname = input.pdf?.pathname;
+  const pdfFilename = input.pdf?.filename;
 
   entries.push({
     id: crypto.randomUUID(),
@@ -96,7 +85,7 @@ export async function updateStellenausschreibung(
   input: {
     title: string;
     description: string;
-    pdfFile?: File;
+    pdf?: { pathname: string; filename: string };
     removePdf?: boolean;
   },
 ): Promise<void> {
@@ -104,19 +93,14 @@ export async function updateStellenausschreibung(
   const entry = entries.find((e) => e.id === id);
   if (!entry) return;
 
-  if (input.pdfFile && input.pdfFile.size > 0) {
-    if (entry.pdfBlobPathname) {
+  if (input.pdf) {
+    // Die neue Datei liegt schon im Blob-Speicher; nur die alte loeschen, wenn sie
+    // unter einem anderen Pfad liegt (bei gleichem Namen wurde sie ueberschrieben).
+    if (entry.pdfBlobPathname && entry.pdfBlobPathname !== input.pdf.pathname) {
       await del(entry.pdfBlobPathname, { token: BLOB_TOKEN }).catch(() => {});
     }
-    const blob = await put(`stellenausschreibung/${id}-${input.pdfFile.name}`, input.pdfFile, {
-      access: "private",
-      contentType: input.pdfFile.type || "application/pdf",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      token: BLOB_TOKEN,
-    });
-    entry.pdfBlobPathname = blob.pathname;
-    entry.pdfFilename = input.pdfFile.name;
+    entry.pdfBlobPathname = input.pdf.pathname;
+    entry.pdfFilename = input.pdf.filename;
   } else if (input.removePdf) {
     if (entry.pdfBlobPathname) {
       await del(entry.pdfBlobPathname, { token: BLOB_TOKEN }).catch(() => {});
