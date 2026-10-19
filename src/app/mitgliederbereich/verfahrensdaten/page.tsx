@@ -6,20 +6,23 @@ import { requireSession } from "@/lib/auth";
 import { findVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
 import { getKoordinaten } from "@/lib/verfahren-personendaten";
 import { getVerfahrenPolygon, getAlleVerfahrenPolygoneUebersicht } from "@/lib/verfahren-polygone";
+import { ladeBcUmringe } from "@/lib/bc-umringe";
 
 export const metadata: Metadata = { title: "Verfahrensdaten | VTG Rheinland-Pfalz" };
 
 export default async function VerfahrensdatenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; quelle?: string }>;
 }) {
   const session = await requireSession();
-  const { id: rawId } = await searchParams;
+  const { id: rawId, quelle } = await searchParams;
   const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
   const zugriffErlaubt = id ? await istVerfahrenErreichbar(session, id) : false;
   const verfahren = zugriffErlaubt && id ? await findVerfahren(id) : undefined;
-  const polygon = verfahren ? getVerfahrenPolygon(verfahren.nr) : undefined;
+  // Testansicht (nur Admin): Umringe aus der BC-Sandbox statt aus dem KML-Stand.
+  const bcTest = quelle === "bc" && session.role === "admin" ? await ladeBcUmringe() : null;
+  const polygon = verfahren ? (bcTest ? bcTest.voll[verfahren.nr] : getVerfahrenPolygon(verfahren.nr)) : undefined;
   const koordinaten = verfahren && !polygon ? await getKoordinaten(verfahren.nr) : undefined;
   const showBackButton = session.role === "dlr" || session.role === "admin";
 
@@ -70,11 +73,19 @@ export default async function VerfahrensdatenPage({
               Zur Finanzübersicht
             </Link>
 
+            {quelle === "bc" && session.role === "admin" && (
+              <p className="mt-6 rounded border border-vtg-yellow bg-yellow-50 px-4 py-3 text-sm text-neutral-800">
+                {bcTest
+                  ? `Testansicht (nur für Admins): Umringe aus BC, Umgebung ${bcTest.umgebung}, Stand ${new Date(bcTest.syncedAt).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })} Uhr.${polygon ? "" : " Für dieses Verfahren gibt es in BC keinen Umring."}`
+                  : "Testansicht (nur für Admins): Es liegt noch kein Abgleich aus BC vor. Bitte zuerst /api/bc-umringe-sync aufrufen."}
+              </p>
+            )}
+
             {polygon ? (
               <VerfahrenKarte
                 polygon={polygon}
                 aktuelleNr={verfahren.nr}
-                alleVerfahren={getAlleVerfahrenPolygoneUebersicht()}
+                alleVerfahren={bcTest ? bcTest.uebersicht : getAlleVerfahrenPolygoneUebersicht()}
               />
             ) : (
               koordinaten && (

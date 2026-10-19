@@ -4,12 +4,10 @@
 // serverseitig mit den vorhandenen BC-Zugangsdaten (die nie ausgegeben werden).
 // Vorlaeufiges Hilfsmittel fuer die Umstellung der Karte auf BC-Daten.
 import polygonData from "@/data/verfahren-polygone.json";
-import { BC_RLP_BASE_URL } from "@/lib/bc-config";
+import { umringeBaseUrl } from "@/lib/bc-umringe";
 import { getBcToken } from "@/lib/bc-client";
 import { dlrFarbe, normalisiereDlrName, type VerfahrenPolygon } from "@/lib/verfahren-polygone";
 
-// Sandbox-Umgebung laut Mail von Erik (BC-Entwicklung); per Env-Variable aenderbar.
-const SANDBOX_UMGEBUNG = "Test_22-09-2026";
 const DLR_FARBE_FALLBACK = dlrFarbe("__unbekannt__");
 
 // Rheinland-Pfalz grob (WGS84): Werte ausserhalb deuten auf vertauschte Achsen oder ein
@@ -99,11 +97,7 @@ async function mitParallelitaet<T, R>(items: T[], n: number, fn: (item: T) => Pr
 type Optionen = { baseUrl?: string; getToken?: () => Promise<string> };
 
 export async function erstelleUmringeBericht(opts: Optionen = {}): Promise<string> {
-  const baseUrl = (
-    opts.baseUrl ??
-    process.env.BC_UMRINGE_BASE_URL ??
-    BC_RLP_BASE_URL.replace("/Production/", `/${SANDBOX_UMGEBUNG}/`)
-  ).replace(/\/$/, "");
+  const baseUrl = (opts.baseUrl ?? umringeBaseUrl()).replace(/\/$/, "");
   const getToken = opts.getToken ?? getBcToken;
 
   async function bcGet(url: string, json: boolean): Promise<unknown> {
