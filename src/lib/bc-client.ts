@@ -50,7 +50,8 @@ async function fetchToken(): Promise<TokenCache> {
   return { accessToken: data.access_token, expiresAt };
 }
 
-async function getToken(): Promise<string> {
+// Auch fuer die Pruefung der Verfahrensumringe (src/lib/bc-umringe-pruefung.ts) genutzt.
+export async function getBcToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now()) {
     return cachedToken.accessToken;
   }
@@ -84,7 +85,7 @@ export type BcExportFile = {
 // zurueckkommt, Paging ueber @odata.nextLink ist fuer diesen Anwendungsfall
 // daher nicht noetig.
 async function fetchBcFile(baseUrl: string, entity: string, filter: string): Promise<BcExportFile | null> {
-  const token = await getToken();
+  const token = await getBcToken();
   const url = `${baseUrl}/${entity}?${new URLSearchParams({ $filter: filter }).toString()}`;
 
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -129,7 +130,7 @@ type ODataResponse<T> = { value: T[]; "@odata.nextLink"?: string };
 // Liest eine BC-Entity vollstaendig aus, inkl. Paging ueber @odata.nextLink
 // (BC deckelt Antworten auf 20.000 Zeilen/Seite).
 export async function fetchBcEntityAllPages<T>(entity: "vtgCompanies" | "vtgBudgetLines"): Promise<T[]> {
-  const token = await getToken();
+  const token = await getBcToken();
   const results: T[] = [];
   let url: string | undefined = `${BC_RLP_BASE_URL}/${entity}`;
 
