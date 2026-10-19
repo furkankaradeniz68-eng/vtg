@@ -5,6 +5,7 @@
 // Vorlaeufiges Hilfsmittel fuer die Umstellung der Karte auf BC-Daten.
 import polygonData from "@/data/verfahren-polygone.json";
 import { umringeBaseUrl } from "@/lib/bc-umringe";
+import { listBcCompanyNumbers } from "@/lib/bc-companies";
 import { getBcToken } from "@/lib/bc-client";
 import { dlrFarbe, normalisiereDlrName, type VerfahrenPolygon } from "@/lib/verfahren-polygone";
 
@@ -254,12 +255,39 @@ export async function erstelleUmringeBericht(opts: Optionen = {}): Promise<strin
   zeig("Echte Abweichung bei der DLR-Zuordnung (Schreibweise ignoriert)", abw.dlr);
 
   log();
+  log("## 6. Abgleich mit den Mandanten der Homepage");
+  let homepageNrs: Set<string> | null = null;
+  try {
+    homepageNrs = new Set(await listBcCompanyNumbers());
+  } catch (e) {
+    log(`- Mandanten der Homepage nicht verfügbar: ${(e as Error).message}`);
+  }
+  let kmlFehltFuerHomepage: string[] = [];
+  if (homepageNrs) {
+    const hp = homepageNrs;
+    const liste = (a: string[]) => `${a.length}${a.length ? ` (${a.sort().slice(0, 60).join(", ")}${a.length > 60 ? " …" : ""})` : ""}`;
+    const hpMitBc = [...hp].filter((n) => proNr.has(n));
+    const hpOhneBc = [...hp].filter((n) => !proNr.has(n));
+    kmlFehltFuerHomepage = hpOhneBc.filter((n) => kmlNr.has(n));
+    const hpOhneBeides = hpOhneBc.filter((n) => !kmlNr.has(n));
+    log(`- Mandanten auf der Homepage (laufender BC-Stand): ${hp.size} · davon mit Umring in BC: ${hpMitBc.length} · ohne Umring in BC: ${hpOhneBc.length}`);
+    log(`- Auf der Homepage, KML hat einen Umring, **BC nicht** (hier würde die Karte verloren gehen): ${liste(kmlFehltFuerHomepage)}`);
+    log(`- Auf der Homepage, weder in BC noch im KML ein Umring: ${liste(hpOhneBeides)}`);
+    const fehlt29 = nurKml;
+    log(`- Von den ${fehlt29.length} „fehlt in BC“-Verfahren (Abschnitt 5) sind auf der Homepage vorhanden: ${liste(fehlt29.filter((n) => hp.has(n)))}`);
+    log(`- … nicht auf der Homepage (vermutlich abgeschlossen, unkritisch): ${fehlt29.filter((n) => !hp.has(n)).length}`);
+    log(`- Umringe in BC zu Mandanten, die nicht auf der Homepage sind: ${liste([...proNr.keys()].filter((n) => !hp.has(n)))}`);
+  }
+
+  log();
   log("## Fazit");
   const probleme: string[] = [];
   if (fehlerhaft.length) probleme.push(`${fehlerhaft.length} Mandant(en) mit Geometrie-Auffälligkeiten`);
   if ([...dlrZaehler.keys()].some((d) => dlrFarbe(d) === DLR_FARBE_FALLBACK)) probleme.push("DLR-Namen ohne Kartenfarbe");
   if (abw.teil.length || abw.loch.length) probleme.push("Teilflächen/Löcher weichen vom KML ab");
   if (abw.flaeche.length) probleme.push("Flächenabweichungen");
+  if (abw.dlr.length) probleme.push(`${abw.dlr.length} abweichende DLR-Zuordnung(en)`);
+  if (kmlFehltFuerHomepage.length) probleme.push(`${kmlFehltFuerHomepage.length} Verfahren der Homepage hätten in BC keinen Umring, obwohl das KML einen hat`);
   log(probleme.length ? `- Zu klären: ${probleme.join("; ")}.` : "- Keine Auffälligkeiten: Geometrie, Teilflächen, Löcher und DLR-Namen passen zum bisherigen Stand.");
   return out.join("\n");
 }

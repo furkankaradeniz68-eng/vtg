@@ -120,6 +120,11 @@ export async function findBcCompanyByHomepageUsername(username: string): Promise
 
 // Fuer die Downloads-Zuweisung im Admin-Bereich: alle Verfahren mit BC-Login
 // (homepageUsername leer = kein Mandanten-Login, siehe BC-Feldmapping).
+// Nummern aller Mandanten im laufenden BC-Snapshot der Homepage (ohne Finanzdaten zu laden).
+export async function listBcCompanyNumbers(): Promise<string[]> {
+  return (await loadCompanies()).map((c) => c.vtgCompanyNo);
+}
+
 export async function listBcAbonnenten(): Promise<{ username: string; label: string }[]> {
   const companies = await loadCompanies();
   return companies
