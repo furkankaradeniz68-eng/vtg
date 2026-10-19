@@ -46,6 +46,18 @@ const DLR_FARBEN: Record<string, string> = {
 };
 const DLR_FARBE_FALLBACK = "#6b7280";
 
+// DLR-Namen kommen je nach Quelle in leicht unterschiedlicher Schreibweise vor
+// (KML: "DLR Westerwald - Osteifel", BC: "DLR Westerwald-Osteifel"). Fuer Farbe und
+// Vergleich zaehlt daher nur der normalisierte Name: Abstaende um Bindestriche und
+// Gross-/Kleinschreibung werden ignoriert.
+export function normalisiereDlrName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s*-\s*/g, "-").replace(/\s+/g, " ");
+}
+
+const DLR_FARBEN_NORMALISIERT = new Map(
+  Object.entries(DLR_FARBEN).map(([name, farbe]) => [normalisiereDlrName(name), farbe]),
+);
+
 export function dlrFarbe(dlrName: string): string {
-  return DLR_FARBEN[dlrName] ?? DLR_FARBE_FALLBACK;
+  return DLR_FARBEN_NORMALISIERT.get(normalisiereDlrName(dlrName)) ?? DLR_FARBE_FALLBACK;
 }

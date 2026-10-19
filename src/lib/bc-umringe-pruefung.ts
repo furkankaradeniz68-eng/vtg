@@ -6,7 +6,7 @@
 import polygonData from "@/data/verfahren-polygone.json";
 import { BC_RLP_BASE_URL } from "@/lib/bc-config";
 import { getBcToken } from "@/lib/bc-client";
-import { dlrFarbe, type VerfahrenPolygon } from "@/lib/verfahren-polygone";
+import { dlrFarbe, normalisiereDlrName, type VerfahrenPolygon } from "@/lib/verfahren-polygone";
 
 // Sandbox-Umgebung laut Mail von Erik (BC-Entwicklung); per Env-Variable aenderbar.
 const SANDBOX_UMGEBUNG = "Test_22-09-2026";
@@ -250,14 +250,14 @@ export async function erstelleUmringeBericht(opts: Optionen = {}): Promise<strin
     const rel = k.flaeche ? Math.abs(b.flaeche - k.flaeche) / k.flaeche : 0;
     if (rel > 0.02) abw.flaeche.push(`${nr} (${(rel * 100).toFixed(1)} %)`);
     const bd = [...b.dlr][0];
-    if (bd && kml[nr].dlrName && bd !== kml[nr].dlrName) abw.dlr.push(`${nr} (BC „${bd}“ / KML „${kml[nr].dlrName}“)`);
+    if (bd && kml[nr].dlrName && normalisiereDlrName(bd) !== normalisiereDlrName(kml[nr].dlrName)) abw.dlr.push(`${nr} (BC „${bd}“ / KML „${kml[nr].dlrName}“)`);
   }
   const zeig = (titel: string, liste: string[]) =>
-    log(`- ${titel}: ${liste.length}${liste.length ? ` – ${liste.slice(0, 25).join("; ")}${liste.length > 25 ? " …" : ""}` : ""}`);
+    log(`- ${titel}: ${liste.length}${liste.length ? ` – ${liste.slice(0, 80).join("; ")}${liste.length > 80 ? " …" : ""}` : ""}`);
   zeig("Abweichende Anzahl Teilflächen", abw.teil);
   zeig("Abweichende Anzahl Löcher", abw.loch);
   zeig("Flächenabweichung über 2 %", abw.flaeche);
-  zeig("Abweichender DLR-Name", abw.dlr);
+  zeig("Echte Abweichung bei der DLR-Zuordnung (Schreibweise ignoriert)", abw.dlr);
 
   log();
   log("## Fazit");
