@@ -5,8 +5,7 @@ import VerfahrenKarte from "@/components/VerfahrenKarte";
 import { requireSession } from "@/lib/auth";
 import { findVerfahren, istVerfahrenErreichbar } from "@/lib/bc-companies";
 import { getKoordinaten } from "@/lib/verfahren-personendaten";
-import { getVerfahrenPolygon, getAlleVerfahrenPolygoneUebersicht } from "@/lib/verfahren-polygone";
-import { ladeBcUmringe } from "@/lib/bc-umringe";
+import { getUmringe } from "@/lib/verfahren-umringe";
 
 export const metadata: Metadata = { title: "Verfahrensdaten | VTG Rheinland-Pfalz" };
 
@@ -20,9 +19,10 @@ export default async function VerfahrensdatenPage({
   const id = rawId ?? (session.role === "abonnent" ? session.username : undefined);
   const zugriffErlaubt = id ? await istVerfahrenErreichbar(session, id) : false;
   const verfahren = zugriffErlaubt && id ? await findVerfahren(id) : undefined;
-  // Testansicht (nur Admin): Umringe aus der BC-Sandbox statt aus dem KML-Stand.
-  const bcTest = quelle === "bc" && session.role === "admin" ? await ladeBcUmringe() : null;
-  const polygon = verfahren ? (bcTest ? bcTest.voll[verfahren.nr] : getVerfahrenPolygon(verfahren.nr)) : undefined;
+  // Testansicht (nur Admin, ?quelle=bc): Sandbox-Daten mit KML als Ersatz, sonst der freigegebene Stand.
+  const testAnsicht = quelle === "bc" && session.role === "admin";
+  const umringe = await getUmringe(testAnsicht ? "test" : "oeffentlich");
+  const polygon = verfahren ? umringe.polygon(verfahren.nr) : undefined;
   const koordinaten = verfahren && !polygon ? await getKoordinaten(verfahren.nr) : undefined;
   const showBackButton = session.role === "dlr" || session.role === "admin";
 
@@ -73,10 +73,16 @@ export default async function VerfahrensdatenPage({
               Zur Finanzübersicht
             </Link>
 
-            {quelle === "bc" && session.role === "admin" && (
+            {testAnsicht && (
               <p className="mt-6 rounded border border-vtg-yellow bg-yellow-50 px-4 py-3 text-sm text-neutral-800">
-                {bcTest
-                  ? `Testansicht (nur für Admins): Umringe aus BC, Umgebung ${bcTest.umgebung}, Stand ${new Date(bcTest.syncedAt).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })} Uhr.${polygon ? "" : " Für dieses Verfahren gibt es in BC keinen Umring."}`
+                {umringe.bc
+                  ? `Testansicht (nur für Admins): Umringe aus BC, Umgebung ${umringe.bc.umgebung}, Stand ${new Date(umringe.bc.syncedAt).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })} Uhr, mit KML-Stand als Ersatz. Dieses Verfahren: ${
+                      umringe.herkunft(verfahren.nr) === "bc"
+                        ? "Umring aus BC."
+                        : umringe.herkunft(verfahren.nr) === "kml"
+                          ? "kein Umring in BC, KML-Umring als Ersatz."
+                          : "weder in BC noch im KML ein Umring."
+                    }`
                   : "Testansicht (nur für Admins): Es liegt noch kein Abgleich aus BC vor. Bitte zuerst /api/bc-umringe-sync aufrufen."}
               </p>
             )}
@@ -85,7 +91,7 @@ export default async function VerfahrensdatenPage({
               <VerfahrenKarte
                 polygon={polygon}
                 aktuelleNr={verfahren.nr}
-                alleVerfahren={bcTest ? bcTest.uebersicht : getAlleVerfahrenPolygoneUebersicht()}
+                alleVerfahren={umringe.uebersicht}
               />
             ) : (
               koordinaten && (

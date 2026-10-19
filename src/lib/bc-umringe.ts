@@ -9,16 +9,32 @@ import { BC_RLP_BASE_URL } from "@/lib/bc-config";
 import { getBcToken } from "@/lib/bc-client";
 import type { VerfahrenPolygon } from "@/lib/verfahren-polygone";
 
-const BLOB_PATHNAME = "verfahren-umringe-bc.json";
+// Zwei getrennte Staende: "test" (BC-Sandbox, nur fuer die Admin-Testansicht) und
+// "produktion" (echte BC-Daten, fuer die oeffentliche Karte, sobald sie freigegeben ist).
+export type UmringeZiel = "test" | "produktion";
+// Frueherer gemeinsamer Name (enthielt Sandbox-Daten); wird beim naechsten Abgleich geloescht.
+export const ALTER_BLOB_PATHNAME = "verfahren-umringe-bc.json";
+const BLOB_PATHNAME: Record<UmringeZiel, string> = {
+  test: "verfahren-umringe-bc-test.json",
+  produktion: "verfahren-umringe-bc-produktion.json",
+};
 // Sandbox-Umgebung laut Mail von Erik (BC-Entwicklung); per Env-Variable aenderbar.
 const SANDBOX_UMGEBUNG = "Test_22-09-2026";
 // Toleranz der Vereinfachung fuer die Gesamtkarte (Grad, ca. 30 m) wie im KML-Skript.
 const VEREINFACHUNG = 0.0003;
 
-export function umringeBaseUrl(): string {
-  return (
-    process.env.BC_UMRINGE_BASE_URL ?? BC_RLP_BASE_URL.replace("/Production/", `/${SANDBOX_UMGEBUNG}/`)
-  ).replace(/\/$/, "");
+export function umringeBaseUrl(ziel: UmringeZiel = "test"): string {
+  const url =
+    ziel === "produktion"
+      ? (process.env.BC_UMRINGE_PRODUKTION_BASE_URL ?? BC_RLP_BASE_URL)
+      : (process.env.BC_UMRINGE_BASE_URL ?? BC_RLP_BASE_URL.replace("/Production/", `/${SANDBOX_UMGEBUNG}/`));
+  return url.replace(/\/$/, "");
+}
+
+// Schalter fuer die oeffentliche Karte und den naechtlichen Abgleich: erst wenn BC die
+// Umringe in der Produktion bereitgestellt hat, wird BC_UMRINGE_QUELLE=produktion gesetzt.
+export function umringeAusBcAktiv(): boolean {
+  return process.env.BC_UMRINGE_QUELLE === "produktion";
 }
 
 export type BcUmringeDaten = {
@@ -32,17 +48,17 @@ export type BcUmringeDaten = {
 type Row = Record<string, unknown>;
 type Ring = number[][];
 
-async function bcGet(url: string, json: boolean): Promise<unknown> {
+async function bcGet(url: string, json: boolean, base: string): Promise<unknown> {
   const res = await fetch(url, { headers: { Authorization: `Bearer ${await getBcToken()}`, Accept: "application/json" } });
-  if (!res.ok) throw new Error(`BC-Abruf fehlgeschlagen: HTTP ${res.status} (${url.replace(umringeBaseUrl(), "…").slice(0, 80)})`);
+  if (!res.ok) throw new Error(`BC-Abruf fehlgeschlagen: HTTP ${res.status} (${url.replace(base, "…").slice(0, 80)})`);
   return json ? res.json() : res.text();
 }
 
-async function bcGetAll(entity: string): Promise<Row[]> {
+async function bcGetAll(entity: string, base: string): Promise<Row[]> {
   const rows: Row[] = [];
-  let url: string | undefined = `${umringeBaseUrl()}/${entity}`;
+  let url: string | undefined = `${base}/${entity}`;
   while (url) {
-    const page = (await bcGet(url, true)) as { value?: Row[]; "@odata.nextLink"?: string };
+    const page = (await bcGet(url, true, base)) as { value?: Row[]; "@odata.nextLink"?: string };
     rows.push(...(page.value ?? []));
     url = page["@odata.nextLink"];
   }
@@ -86,8 +102,9 @@ function polygone(geo: { type?: string; coordinates?: unknown } | undefined): Ri
 
 const runden = (ring: Ring): Ring => ring.map(([lon, lat]) => [Math.round(lon * 1e6) / 1e6, Math.round(lat * 1e6) / 1e6]);
 
-export async function syncUmringeVonBc(): Promise<BcUmringeDaten> {
-  const [areas, companies] = await Promise.all([bcGetAll("vtgProcedureAreas"), bcGetAll("vtgCompanies")]);
+export async function syncUmringeVonBc(ziel: UmringeZiel = "test"): Promise<BcUmringeDaten> {
+  const base = umringeBaseUrl(ziel);
+  const [areas, companies] = await Promise.all([bcGetAll("vtgProcedureAreas", base), bcGetAll("vtgCompanies", base)]);
   const namen = new Map(companies.map((c) => [String(c.vtgCompanyNo), String(c.name ?? "")]));
 
   // Geometrien parallel (6 gleichzeitig) holen; Link ist absolut oder relativ zur Basis-URL,
@@ -100,8 +117,8 @@ export async function syncUmringeVonBc(): Promise<BcUmringeDaten> {
         const i = next++;
         const link = areas[i]["geometryGeoJson@odata.mediaReadLink"] as string | undefined;
         if (!link) throw new Error(`Datensatz ${String(areas[i].vtgCompanyNo)} hat keinen Geometrie-Link`);
-        const url = link.startsWith("http") ? link : `${umringeBaseUrl()}/${link.replace(/^\//, "")}`;
-        geos[i] = polygone(JSON.parse((await bcGet(url, false)) as string));
+        const url = link.startsWith("http") ? link : `${base}/${link.replace(/^\//, "")}`;
+        geos[i] = polygone(JSON.parse((await bcGet(url, false, base)) as string));
       }
     }),
   );
@@ -127,12 +144,12 @@ export async function syncUmringeVonBc(): Promise<BcUmringeDaten> {
 
   const daten: BcUmringeDaten = {
     syncedAt: new Date().toISOString(),
-    umgebung: umringeBaseUrl().match(/v2\.0\/[^/]+\/([^/]+)\//)?.[1] ?? "?",
+    umgebung: base.match(/v2\.0\/[^/]+\/([^/]+)\//)?.[1] ?? "?",
     anzahlDatensaetze: areas.length,
     voll,
     uebersicht,
   };
-  await put(BLOB_PATHNAME, JSON.stringify(daten), {
+  await put(BLOB_PATHNAME[ziel], JSON.stringify(daten), {
     access: "private",
     contentType: "application/json",
     addRandomSuffix: false,
@@ -142,8 +159,8 @@ export async function syncUmringeVonBc(): Promise<BcUmringeDaten> {
   return daten;
 }
 
-export async function ladeBcUmringe(): Promise<BcUmringeDaten | null> {
-  const result = await get(BLOB_PATHNAME, { access: "private", useCache: false, token: BLOB_TOKEN }).catch(() => null);
+export async function ladeBcUmringe(ziel: UmringeZiel = "test"): Promise<BcUmringeDaten | null> {
+  const result = await get(BLOB_PATHNAME[ziel], { access: "private", useCache: false, token: BLOB_TOKEN }).catch(() => null);
   if (!result || result.statusCode !== 200) return null;
   return JSON.parse(await new Response(result.stream).text()) as BcUmringeDaten;
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { syncBc } from "@/lib/bc-sync";
+import { syncUmringeVonBc, umringeAusBcAktiv } from "@/lib/bc-umringe";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -20,7 +21,15 @@ export async function GET(request: Request) {
 
   try {
     const result = await syncBc();
-    return NextResponse.json({ ok: true, ...result });
+    // Verfahrensumringe: erst nach Freigabe (BC_UMRINGE_QUELLE=produktion). Ein Fehler hier
+    // laesst den Abgleich der Mandantendaten nicht scheitern; der letzte Stand bleibt erhalten.
+    let umringe: string | undefined;
+    if (umringeAusBcAktiv()) {
+      umringe = await syncUmringeVonBc("produktion")
+        .then((d) => `ok (${Object.keys(d.voll).length} Mandanten)`)
+        .catch((e) => `Fehler: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    return NextResponse.json({ ok: true, ...result, ...(umringe ? { umringe } : {}) });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unbekannter Fehler" }, { status: 502 });
   }
