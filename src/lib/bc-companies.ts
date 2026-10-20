@@ -30,11 +30,11 @@ const DLR_ZIFFER_ZU_DIENSTSITZ: Record<string, string[]> = {
   "2": ["Kaiserslautern"],
   "3": ["Mayen"],
   "4": ["Neustadt"],
-  "5": ["Prüm", "Bittburg"],
+  "5": ["Bitburg"],
   "6": ["Simmern"],
   "7": ["Trier"],
   "8": ["Montabaur"],
-  "9": ["BadKreuznach"],
+  "9": ["Bad Kreuznach"],
 };
 
 // Bewusst ohne Modul-Level-Cache und ohne React `cache()`: `cache()` scoped
