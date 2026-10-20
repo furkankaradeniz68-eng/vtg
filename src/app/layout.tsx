@@ -46,6 +46,8 @@ export default async function RootLayout({
         : null;
   const ownNr = session?.role === "abonnent" ? session.username : null;
   const isAdmin = session?.role === "admin";
+  // Einzelner DLR-Login: Offene Posten direkt laden (siehe nav.ts, directHref).
+  const dlrDirekt = session?.role === "dlr" && !session.alleMandanten;
   const host = (await headers()).get("host");
   const portalMode = isPortalHost(host);
 
@@ -56,7 +58,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <SessionTimerBar username={session?.username} />
-        <SiteChrome loggedIn={!!session} role={role} ownNr={ownNr} isAdmin={isAdmin} portalMode={portalMode}>
+        <SiteChrome loggedIn={!!session} role={role} ownNr={ownNr} dlrDirekt={dlrDirekt} isAdmin={isAdmin} portalMode={portalMode}>
           {children}
         </SiteChrome>
       </body>

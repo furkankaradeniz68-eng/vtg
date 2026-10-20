@@ -16,6 +16,10 @@ export type NavItem = {
   // aktuellen id. Ohne gewaehltes Verfahren wird das Item deaktiviert
   // dargestellt.
   hrefPrefix?: string;
+  // Direkter Datei-Download statt Seite fuer einzelne DLR-Logins (siehe Header2.tsx,
+  // Prop dlrDirekt): href zeigt dann auf eine Uebersichtsseite (interne Logins), directHref
+  // auf die API-Route, die die Datei des DLR direkt liefert.
+  directHref?: string;
 };
 
 // Links to static files (PDF/ZIP/...) must use a plain <a>, not next/link's
@@ -26,7 +30,7 @@ export type NavItem = {
 // gestreamt (z.B. das admin-ersetzbare Kontenplan-PDF oder die TG-
 // Einzeldaten-Exports) — solche Routen tragen keine Dateiendung in der URL
 // und muessen deshalb explizit erkannt werden.
-const FILE_API_ROUTES = ["/api/kontenplan", "/api/bewilligungs-abrufuebersicht", "/api/beitragssaetze"];
+const FILE_API_ROUTES = ["/api/kontenplan", "/api/bewilligungs-abrufuebersicht", "/api/beitragssaetze", "/api/offene-posten"];
 const FILE_API_PREFIXES = ["/api/tg-einzeldaten/"];
 
 export function isFileHref(href: string): boolean {
@@ -148,8 +152,9 @@ export const header2SecondRow: Partial<Record<MemberRole, NavItem[]>> = {
       icon: "download",
     },
     { label: "Kontenplan TG", href: "/api/kontenplan", icon: "download" },
-    // Seite mit dem Offene-Posten-Download je DLR (siehe /mitgliederbereich/offene-posten).
-    { label: "Offene Posten", href: "/mitgliederbereich/offene-posten" },
+    // DLR-Login: direkter Download der eigenen Liste; andere interne Logins (Admin, ADD.RLP,
+    // vtggs, vtgnews): Seite mit allen Listen (siehe /mitgliederbereich/offene-posten).
+    { label: "Offene Posten", href: "/mitgliederbereich/offene-posten", directHref: "/api/offene-posten", icon: "download" },
   ],
 };
 

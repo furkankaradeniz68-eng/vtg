@@ -67,12 +67,14 @@ function Header2Item({
   item,
   pathname,
   selectedId,
+  dlrDirekt,
 }: {
   item: NavItem;
   pathname: string;
   selectedId: string | null;
+  dlrDirekt: boolean;
 }) {
-  const href = resolveHref(item, selectedId);
+  const href = item.directHref && dlrDirekt ? item.directHref : resolveHref(item, selectedId);
 
   if (href === null) {
     return (
@@ -96,6 +98,7 @@ function Header2Item({
 export default function Header2({
   role,
   ownNr,
+  dlrDirekt = false,
   portalMode = false,
 }: {
   role: MemberRole | null;
@@ -104,6 +107,9 @@ export default function Header2({
   // die nur Interne ueber die Verfahrensauswahl setzen - ein Mandant waehlt
   // sein Verfahren nicht, er hat immer genau eines.
   ownNr?: string | null;
+  // Einzelner DLR-Login (ohne Sicht auf alle Mandanten): Eintraege mit directHref laden die
+  // Datei direkt, statt eine Uebersichtsseite zu oeffnen.
+  dlrDirekt?: boolean;
   portalMode?: boolean;
 }) {
   const pathname = usePathname();
@@ -120,7 +126,7 @@ export default function Header2({
       <ul className="flex flex-wrap items-center gap-x-6 gap-y-1 py-2">
         {items.map((item) => (
           <li key={item.href}>
-            <Header2Item item={item} pathname={pathname} selectedId={selectedId} />
+            <Header2Item item={item} pathname={pathname} selectedId={selectedId} dlrDirekt={dlrDirekt} />
           </li>
         ))}
       </ul>
@@ -128,7 +134,7 @@ export default function Header2({
         <ul className="flex flex-wrap items-center gap-x-6 gap-y-1 pb-2">
           {secondRow.map((item) => (
             <li key={item.href}>
-              <Header2Item item={item} pathname={pathname} selectedId={selectedId} />
+              <Header2Item item={item} pathname={pathname} selectedId={selectedId} dlrDirekt={dlrDirekt} />
             </li>
           ))}
         </ul>

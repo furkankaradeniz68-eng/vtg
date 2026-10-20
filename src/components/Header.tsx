@@ -189,12 +189,14 @@ export default function Header({
   loggedIn,
   role,
   ownNr,
+  dlrDirekt = false,
   isAdmin = false,
   portalMode = false,
 }: {
   loggedIn: boolean;
   role: MemberRole | null;
   ownNr?: string | null;
+  dlrDirekt?: boolean;
   isAdmin?: boolean;
   portalMode?: boolean;
 }) {
@@ -266,7 +268,7 @@ export default function Header({
       {role && (
         <div className="bg-vtg-yellow/15">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <Header2 role={role} ownNr={ownNr} portalMode={portalMode} />
+            <Header2 role={role} ownNr={ownNr} dlrDirekt={dlrDirekt} portalMode={portalMode} />
           </div>
         </div>
       )}

@@ -12,6 +12,7 @@ export default function SiteChrome({
   loggedIn,
   role,
   ownNr,
+  dlrDirekt,
   isAdmin,
   portalMode,
 }: {
@@ -19,6 +20,7 @@ export default function SiteChrome({
   loggedIn: boolean;
   role: MemberRole | null;
   ownNr?: string | null;
+  dlrDirekt?: boolean;
   isAdmin: boolean;
   portalMode: boolean;
 }) {
@@ -29,7 +31,7 @@ export default function SiteChrome({
 
   return (
     <>
-      <Header loggedIn={loggedIn} role={role} ownNr={ownNr} isAdmin={isAdmin} portalMode={portalMode} />
+      <Header loggedIn={loggedIn} role={role} ownNr={ownNr} dlrDirekt={dlrDirekt} isAdmin={isAdmin} portalMode={portalMode} />
       <main className="flex-1">{children}</main>
       <Footer portalMode={portalMode} />
     </>
