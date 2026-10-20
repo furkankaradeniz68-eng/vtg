@@ -148,6 +148,8 @@ export const header2SecondRow: Partial<Record<MemberRole, NavItem[]>> = {
       icon: "download",
     },
     { label: "Kontenplan TG", href: "/api/kontenplan", icon: "download" },
+    // Seite mit dem Offene-Posten-Download je DLR (siehe /mitgliederbereich/offene-posten).
+    { label: "Offene Posten", href: "/mitgliederbereich/offene-posten" },
   ],
 };
 

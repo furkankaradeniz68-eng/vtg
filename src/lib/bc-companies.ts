@@ -25,7 +25,7 @@ export type Verfahren = {
   city: string;
 };
 
-const DLR_ZIFFER_ZU_DIENSTSITZ: Record<string, string[]> = {
+export const DLR_ZIFFER_ZU_DIENSTSITZ: Record<string, string[]> = {
   "1": ["Bernkastel-Kues"],
   "2": ["Kaiserslautern"],
   "3": ["Mayen"],

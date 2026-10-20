@@ -125,6 +125,42 @@ export function fetchBcGrantOverviewFile(): Promise<BcExportFile | null> {
   return fetchBcFile(BC_GRANTS_BASE_URL, "grantOverviewExportFiles", "isCurrent eq true");
 }
 
+// Offene Posten (Entity "openLedgerExportFiles", API-Gruppe rlp): je Erzeugung eine
+// Excel pro DLR (groupCode "1" bis "9", Dateiname OPn_TT.MM.JJ.xlsx) und ein ZIP mit allen
+// (groupCode leer). isCurrent markiert die aktuelle Erzeugung.
+export type BcOpenLedgerEntry = {
+  id: string;
+  groupCode: string;
+  filename: string;
+  fileType: string;
+  contentType?: string;
+  byteSize?: number;
+  snapshotDateTime: string;
+  "content@odata.mediaReadLink": string;
+};
+
+export async function listBcOpenLedgerFiles(): Promise<BcOpenLedgerEntry[]> {
+  const token = await getBcToken();
+  const url = `${BC_RLP_BASE_URL}/openLedgerExportFiles?${new URLSearchParams({ $filter: "isCurrent eq true" }).toString()}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    console.error(`BC-Abfrage fehlgeschlagen (openLedgerExportFiles): ${res.status} ${await res.text()}`);
+    throw new Error(`BC-Abfrage fehlgeschlagen (openLedgerExportFiles): HTTP ${res.status} (Details im Server-Log)`);
+  }
+  const data = (await res.json()) as { value: BcOpenLedgerEntry[] };
+  return data.value.map((e) => ({ ...e, groupCode: String(e.groupCode ?? "") }));
+}
+
+// Laedt den Dateiinhalt ueber den Downloadlink eines Eintrags (mit Bearer-Token, ohne /$value).
+export async function downloadBcMedia(entry: BcOpenLedgerEntry): Promise<ArrayBuffer> {
+  const res = await fetch(entry["content@odata.mediaReadLink"], { headers: { Authorization: `Bearer ${await getBcToken()}` } });
+  if (!res.ok) {
+    console.error(`BC-Dateiabruf fehlgeschlagen (openLedgerExportFiles): ${res.status} ${await res.text()}`);
+    throw new Error(`BC-Dateiabruf fehlgeschlagen: HTTP ${res.status} (Details im Server-Log)`);
+  }
+  return res.arrayBuffer();
+}
+
 type ODataResponse<T> = { value: T[]; "@odata.nextLink"?: string };
 
 // Liest eine BC-Entity vollstaendig aus, inkl. Paging ueber @odata.nextLink
