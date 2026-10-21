@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { syncBc } from "@/lib/bc-sync";
-import { syncUmringeVonBc, umringeAusBcAktiv } from "@/lib/bc-umringe";
+import { statistikText, syncUmringeVonBc, umringeAusBcAktiv } from "@/lib/bc-umringe";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     let umringe: string | undefined;
     if (umringeAusBcAktiv()) {
       umringe = await syncUmringeVonBc("produktion")
-        .then((d) => `ok (${Object.keys(d.voll).length} Mandanten)`)
+        .then((r) => `ok (${Object.keys(r.daten.voll).length} Mandanten; ${statistikText(r.statistik)})`)
         .catch((e) => `Fehler: ${e instanceof Error ? e.message : String(e)}`);
     }
     return NextResponse.json({ ok: true, ...result, ...(umringe ? { umringe } : {}) });
