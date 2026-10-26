@@ -19,18 +19,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const result = await syncBc();
-    // Verfahrensumringe: erst nach Freigabe (BC_UMRINGE_QUELLE=produktion). Ein Fehler hier
-    // laesst den Abgleich der Mandantendaten nicht scheitern; der letzte Stand bleibt erhalten.
-    let umringe: string | undefined;
-    if (umringeAusBcAktiv()) {
-      umringe = await syncUmringeVonBc("produktion")
-        .then((r) => `ok (${Object.keys(r.daten.voll).length} Mandanten; ${statistikText(r.statistik)})`)
-        .catch((e) => `Fehler: ${e instanceof Error ? e.message : String(e)}`);
-    }
-    return NextResponse.json({ ok: true, ...result, ...(umringe ? { umringe } : {}) });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unbekannter Fehler" }, { status: 502 });
-  }
+  // Mandantendaten und Verfahrensumringe laufen unabhaengig voneinander: scheitert das eine,
+  // bleibt der letzte Stand des anderen trotzdem aktuell. Bei einem Fehler antwortet die Route
+  // mit 502, damit Vercel den Lauf als fehlgeschlagen zeigt.
+  const mandanten = await syncBc().then(
+    (r) => ({ ok: true as const, ...r }),
+    (e) => ({ ok: false as const, error: e instanceof Error ? e.message : "Unbekannter Fehler" }),
+  );
+  // Verfahrensumringe: erst nach Freigabe (BC_UMRINGE_QUELLE=produktion).
+  const umringe = umringeAusBcAktiv()
+    ? await syncUmringeVonBc("produktion").then(
+        (r) => ({ ok: true as const, mandanten: Object.keys(r.daten.voll).length, protokoll: statistikText(r.statistik) }),
+        (e) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e) }),
+      )
+    : undefined;
+
+  const body = { ok: mandanten.ok && (umringe?.ok ?? true), mandanten, ...(umringe ? { umringe } : {}) };
+  // Nur zur Kontrolle im Vercel-Protokoll (Laufzeit-Logs); enthaelt keine Daten.
+  console.info(`bc-sync: Mandantendaten ${mandanten.ok ? "ok" : "FEHLER"}${umringe ? `; Umringe ${umringe.ok ? `ok (${umringe.mandanten} Mandanten; ${umringe.protokoll})` : "FEHLER"}` : ""}`);
+  return NextResponse.json(body, { status: body.ok ? 200 : 502 });
 }
