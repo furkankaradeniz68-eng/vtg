@@ -164,6 +164,13 @@ export async function syncUmringeVonBc(
   const namen = new Map(companies.map((c) => [String(c.vtgCompanyNo), String(c.name ?? "")]));
   const alt = cacheAlt?.bereiche ?? {};
 
+  // Schutz vor leeren oder stark verkleinerten Antworten (z. B. waehrend BC neu aufbaut): den
+  // letzten guten Stand behalten statt die Karte auf den KML-Stand zurueckfallen zu lassen.
+  if (areas.length === 0) throw new Error("BC lieferte keine Umringe; letzter Stand bleibt erhalten.");
+  if (vorher && areas.length < vorher.anzahlDatensaetze * 0.5) {
+    throw new Error(`BC lieferte deutlich weniger Umringe als zuletzt (${areas.length} statt ${vorher.anzahlDatensaetze}); letzter Stand bleibt erhalten.`);
+  }
+
   // Je Datensatz entscheiden: aus dem Zwischenspeicher uebernehmen (gleicher geometryHash)
   // oder neu laden. Fehlt der Hash in BC, wird sicherheitshalber immer geladen.
   const statistik: UmringeStatistik = {
