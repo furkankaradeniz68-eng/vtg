@@ -50,7 +50,7 @@ async function fetchToken(): Promise<TokenCache> {
   return { accessToken: data.access_token, expiresAt };
 }
 
-// Auch fuer die Pruefung der Verfahrensumringe (src/lib/bc-umringe-pruefung.ts) genutzt.
+// Auch fuer die Umringe (bc-umringe.ts) und die Offenen Posten (offene-posten.ts) genutzt.
 export async function getBcToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now()) {
     return cachedToken.accessToken;
