@@ -248,6 +248,8 @@ export type FinanzDownloadSpalten = {
 export type FinanzDownloadZeile = {
   konto: string;
   typ?: "gruppe" | "gesamt" | "sonder";
+  // Kundenwunsch (2026-11-04): Zeile nur im PDF, nicht auf der Berichtsseite.
+  nurPdf?: boolean;
   laufzeit: FinanzDownloadSpalten;
   haushaltsjahr: FinanzDownloadSpalten;
 };
@@ -559,6 +561,7 @@ export async function findeFinanzDownloadKategorie(
     zeilen.push({
       konto: "Nicht zuwendungsfähige AK (Plan)",
       typ: "sonder",
+      nurPdf: true,
       laufzeit: { ausgaben: gesamtNzL, nichtZuFaehig: null, plan: null, diffEur: 0, diffProz: null },
       haushaltsjahr: { ausgaben: gesamtNzHj, nichtZuFaehig: null, plan: null, diffEur: 0, diffProz: null },
     });
@@ -583,6 +586,7 @@ export async function findeFinanzDownloadKategorie(
     zeilen.push({
       konto: "Summe BD (8.3)",
       typ: "sonder",
+      nurPdf: true,
       laufzeit: { ausgaben: bdAusgabenL, nichtZuFaehig: null, plan: bdPlanL, diffEur: null, diffProz: null },
       haushaltsjahr: { ausgaben: bdAusgabenHj, nichtZuFaehig: null, plan: bdPlanHj, diffEur: null, diffProz: null },
     });
@@ -603,6 +607,7 @@ export async function findeFinanzDownloadKategorie(
     zeilen.push({
       konto: "Zuwendungsfähige AK",
       typ: "gesamt",
+      nurPdf: true,
       laufzeit: {
         ausgaben: zAusgabenL,
         nichtZuFaehig: null,
