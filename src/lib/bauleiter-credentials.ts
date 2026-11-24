@@ -6,9 +6,8 @@
 // Blob-JSON-Single-Entry-Muster wie site-images.ts/stellenausschreibung.ts —
 // admin-los pflegbar (bei Bedarf ueber den Blob-Store direkt), kein Eingriff
 // in Vercel-Env-Vars noetig.
-import { put, get } from "@vercel/blob";
 import bcrypt from "bcryptjs";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "bauleiter-credentials.json";
 
@@ -27,32 +26,14 @@ const DEFAULT_CREDENTIAL: BauleiterCredential = {
 };
 
 async function loadCredential(): Promise<BauleiterCredential> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await saveCredential(DEFAULT_CREDENTIAL);
-    return DEFAULT_CREDENTIAL;
-  }
-  const text = await new Response(result.stream).text();
-  return JSON.parse(text) as BauleiterCredential;
-}
-
-async function saveCredential(credential: BauleiterCredential): Promise<void> {
-  await put(META_PATHNAME, JSON.stringify(credential), {
-    access: "private",
-    contentType: "application/json",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    token: BLOB_TOKEN,
-  });
+  return ladeOderLegeAn<BauleiterCredential>(META_PATHNAME, DEFAULT_CREDENTIAL);
 }
 
 export async function verifyBauleiterCredential(username: string, password: string): Promise<boolean> {
-  const credential = await loadCredential();
+  // Bei einem Lesefehler keine Anmeldung als Bauleiter (auch nicht mit den
+  // Startdaten); die uebrigen Anmeldewege in verifyCredentials laufen weiter.
+  const credential = await zurAnzeige<BauleiterCredential | null>(loadCredential, null);
+  if (!credential) return false;
   if (username.trim() !== credential.username) return false;
   return bcrypt.compare(password, credential.passwordHash);
 }

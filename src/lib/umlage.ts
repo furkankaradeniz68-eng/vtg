@@ -2,8 +2,9 @@
 // codiertes Array in mitgliederbereich/umlage/page.tsx, jetzt admin-pflegbar
 // nach dem gleichen Blob-JSON-Muster wie public-downloads.ts. Der Begleittext
 // der Seite liegt separat in site-content.ts (Slug "umlage").
-import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "umlage-meta.json";
 
@@ -43,18 +44,7 @@ export function formatUmlageProzent(percent: string): string {
 // Keine Modul-weite Zwischenspeicherung, siehe public-downloads.ts: diese
 // Metadaten werden von der Anwendung selbst laufend veraendert.
 async function loadUmlageRows(): Promise<UmlageRow[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await saveUmlageRows(DEFAULT_ROWS);
-    return DEFAULT_ROWS;
-  }
-  const text = await new Response(result.stream).text();
-  return JSON.parse(text) as UmlageRow[];
+  return ladeOderLegeAn<UmlageRow[]>(META_PATHNAME, DEFAULT_ROWS);
 }
 
 async function saveUmlageRows(rows: UmlageRow[]): Promise<void> {
@@ -70,7 +60,7 @@ async function saveUmlageRows(rows: UmlageRow[]): Promise<void> {
 // Absteigend nach Jahr sortiert: neuestes Jahr zuerst (Kundenwunsch 2026-10-15),
 // bei gleichem Jahr bleibt die gespeicherte Reihenfolge erhalten.
 export async function getUmlageRows(): Promise<UmlageRow[]> {
-  const rows = await loadUmlageRows();
+  const rows = await zurAnzeige(loadUmlageRows, DEFAULT_ROWS);
   return [...rows].sort((a, b) => b.year - a.year);
 }
 

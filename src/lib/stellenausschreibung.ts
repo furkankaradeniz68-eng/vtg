@@ -7,8 +7,9 @@
 // personen.ts. Das PDF liegt (falls vorhanden) privat im Blob-Store und
 // wird ueber eine eigene, per-id parametrisierte API-Route authentifiziert
 // gestreamt (siehe /api/stellenausschreibung/[id]/route.ts).
-import { put, del, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put, del } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeBlobJson, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "stellenausschreibung-meta.json";
 
@@ -21,21 +22,11 @@ export type StellenausschreibungEntry = {
   updatedAt: string;
 };
 
-// Leere Liste als Default: die oeffentliche Seite zeigt bei leerer Liste
+// Ohne gespeicherte Datei eine leere Liste: die oeffentliche Seite zeigt dann
 // einen fest codierten Hinweistext an (siehe stellenausschreibung/page.tsx),
 // statt einen Platzhalter-Datensatz zu seeden.
-const DEFAULT_ENTRIES: StellenausschreibungEntry[] = [];
-
 async function loadEntries(): Promise<StellenausschreibungEntry[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) return DEFAULT_ENTRIES;
-  const text = await new Response(result.stream).text();
-  return JSON.parse(text) as StellenausschreibungEntry[];
+  return (await ladeBlobJson<StellenausschreibungEntry[]>(META_PATHNAME)) ?? [];
 }
 
 async function saveEntries(entries: StellenausschreibungEntry[]): Promise<void> {
@@ -49,7 +40,7 @@ async function saveEntries(entries: StellenausschreibungEntry[]): Promise<void> 
 }
 
 export async function getStellenausschreibungen(): Promise<StellenausschreibungEntry[]> {
-  return loadEntries();
+  return zurAnzeige(loadEntries, []);
 }
 
 export async function getStellenausschreibungById(id: string): Promise<StellenausschreibungEntry | undefined> {

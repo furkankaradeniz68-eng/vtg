@@ -5,8 +5,9 @@
 // eingetragenen Preis werden beim Speichern verworfen (so bleiben, wie im
 // urspruenglichen Datensatz, unvollstaendige Jahre — z.B. 2022 ab Juni --
 // moeglich, ohne 12 Platzhalterzeilen anlegen zu muessen).
-import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "energiekostenzuschlag-meta.json";
 
@@ -87,18 +88,7 @@ const DEFAULT_YEARS: EnergiekostenYear[] = [
 
 // Keine Modul-weite Zwischenspeicherung, siehe public-downloads.ts.
 async function loadYears(): Promise<EnergiekostenYear[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await saveYears(DEFAULT_YEARS);
-    return DEFAULT_YEARS;
-  }
-  const text = await new Response(result.stream).text();
-  return JSON.parse(text) as EnergiekostenYear[];
+  return ladeOderLegeAn<EnergiekostenYear[]>(META_PATHNAME, DEFAULT_YEARS);
 }
 
 async function saveYears(years: EnergiekostenYear[]): Promise<void> {
@@ -113,7 +103,7 @@ async function saveYears(years: EnergiekostenYear[]): Promise<void> {
 
 // Neuestes Jahr zuerst, passend zur bisherigen Anzeigereihenfolge.
 export async function getEnergiekostenYears(): Promise<EnergiekostenYear[]> {
-  const years = await loadYears();
+  const years = await zurAnzeige(loadYears, DEFAULT_YEARS);
   return [...years].sort((a, b) => b.year - a.year);
 }
 

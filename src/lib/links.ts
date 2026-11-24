@@ -1,8 +1,9 @@
 // Links-Seite (/links): Texte + URL je Eintrag, gruppiert nach Kategorie.
 // Fruher hart codiertes Array in app/links/page.tsx, jetzt admin-pflegbar
 // nach dem gleichen Blob-JSON-Muster wie umlage.ts / public-downloads.ts.
-import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "links-meta.json";
 
@@ -261,18 +262,7 @@ const DEFAULT_ITEMS: LinkItem[] = [
 // Keine Modul-weite Zwischenspeicherung, siehe public-downloads.ts: diese
 // Metadaten werden von der Anwendung selbst laufend veraendert.
 async function loadLinkItems(): Promise<LinkItem[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await saveLinkItems(DEFAULT_ITEMS);
-    return DEFAULT_ITEMS;
-  }
-  const text = await new Response(result.stream).text();
-  return JSON.parse(text) as LinkItem[];
+  return ladeOderLegeAn<LinkItem[]>(META_PATHNAME, DEFAULT_ITEMS);
 }
 
 async function saveLinkItems(items: LinkItem[]): Promise<void> {
@@ -286,14 +276,14 @@ async function saveLinkItems(items: LinkItem[]): Promise<void> {
 }
 
 export async function getAllLinkItems(): Promise<LinkItem[]> {
-  return loadLinkItems();
+  return zurAnzeige(loadLinkItems, DEFAULT_ITEMS);
 }
 
 // Gruppiert nach Kategorie, in der Reihenfolge des ersten Auftretens -
 // neue Kategorien landen damit automatisch am Ende, bestehende behalten
 // ihre bisherige Position.
 export async function getLinksByCategory(): Promise<LinkCategory[]> {
-  const items = await loadLinkItems();
+  const items = await zurAnzeige(loadLinkItems, DEFAULT_ITEMS);
   const order: string[] = [];
   const map = new Map<string, LinkItem[]>();
   for (const item of items) {

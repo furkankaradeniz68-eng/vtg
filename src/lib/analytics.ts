@@ -2,8 +2,9 @@
 // wie oft eingeloggt, wer hat wie oft welche Datei heruntergeladen. Analog zu
 // downloads.ts liegen die Daten in privatem Vercel-Blob-Speicher, nicht im
 // Repo oder einer Datenbank (die es in diesem Projekt bewusst nicht gibt).
-import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeBlobJson, zurAnzeige } from "@/lib/blob-json";
 import type { SessionRole } from "@/lib/auth";
 
 const META_PATHNAME = "analytics-events.json";
@@ -25,19 +26,7 @@ export type AnalyticsEvent = {
 };
 
 async function loadEvents(): Promise<AnalyticsEvent[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) return [];
-  const text = await new Response(result.stream).text();
-  try {
-    return JSON.parse(text) as AnalyticsEvent[];
-  } catch {
-    return [];
-  }
+  return (await ladeBlobJson<AnalyticsEvent[]>(META_PATHNAME)) ?? [];
 }
 
 async function saveEvents(events: AnalyticsEvent[]): Promise<void> {
@@ -76,7 +65,7 @@ export type UserStat = {
 // Aggregiert die Rohevents pro Benutzer fuer die Uebersichtstabelle im
 // Admin-Bereich. Sortiert nach Gesamtaktivitaet (Logins + Downloads) absteigend.
 export async function getUserStats(): Promise<UserStat[]> {
-  const events = await loadEvents();
+  const events = await zurAnzeige(loadEvents, []);
   const byUser = new Map<string, UserStat>();
 
   for (const e of events) {
@@ -104,6 +93,6 @@ export async function getUserStats(): Promise<UserStat[]> {
 
 // Juengste Rohevents fuer den Aktivitaets-Feed, neueste zuerst.
 export async function getRecentEvents(limit = 50): Promise<AnalyticsEvent[]> {
-  const events = await loadEvents();
+  const events = await zurAnzeige(loadEvents, []);
   return events.slice(-limit).reverse();
 }

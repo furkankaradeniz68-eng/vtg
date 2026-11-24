@@ -5,8 +5,9 @@
 // sind entweder bestehende statische Dateien unter /public/downloads (legacy,
 // kein blobPathname) oder von Admins hochgeladene, oeffentlich lesbare Blobs
 // unter public-downloads/{category}/{id}-{dateiname}.
-import { put, del, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put, del } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "public-downloads-meta.json";
 
@@ -230,18 +231,7 @@ function wendeUrlKorrekturenAn(entries: PublicDownloadEntry[]): boolean {
 // Keine Modul-weite Zwischenspeicherung, siehe downloads.ts: diese Metadaten
 // werden von der Anwendung selbst laufend veraendert.
 async function loadPublicDownloads(): Promise<PublicDownloadEntry[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await savePublicDownloads(DEFAULT_ENTRIES);
-    return DEFAULT_ENTRIES;
-  }
-  const text = await new Response(result.stream).text();
-  const entries = JSON.parse(text) as PublicDownloadEntry[];
+  const entries = await ladeOderLegeAn<PublicDownloadEntry[]>(META_PATHNAME, DEFAULT_ENTRIES);
   const seedsErgaenzt = ergaenzeNachtraeglicheSeeds(entries);
   const urlsKorrigiert = wendeUrlKorrekturenAn(entries);
   if (seedsErgaenzt || urlsKorrigiert) await savePublicDownloads(entries);
@@ -259,12 +249,12 @@ async function savePublicDownloads(entries: PublicDownloadEntry[]): Promise<void
 }
 
 export async function getPublicDownloadsByCategory(category: PublicDownloadCategory): Promise<PublicDownloadEntry[]> {
-  const entries = await loadPublicDownloads();
+  const entries = await zurAnzeige(loadPublicDownloads, DEFAULT_ENTRIES);
   return entries.filter((e) => e.category === category && !e.removed);
 }
 
 export async function getAllPublicDownloads(): Promise<PublicDownloadEntry[]> {
-  return (await loadPublicDownloads()).filter((e) => !e.removed);
+  return (await zurAnzeige(loadPublicDownloads, DEFAULT_ENTRIES)).filter((e) => !e.removed);
 }
 
 export async function getPublicDownloadById(id: string): Promise<PublicDownloadEntry | undefined> {

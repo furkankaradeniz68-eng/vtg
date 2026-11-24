@@ -3,8 +3,9 @@
 // aktuell nur das Hero-Banner, das auf jeder Seite oben in PageHero.tsx
 // erscheint. Gleiches Blob-JSON-Speichermuster wie site-content.ts/
 // public-downloads.ts.
-import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "site-images-meta.json";
 
@@ -29,18 +30,7 @@ const DEFAULT_ENTRIES: Record<SiteImageKey, SiteImageEntry> = {
 };
 
 async function loadSiteImages(): Promise<Record<SiteImageKey, SiteImageEntry>> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await saveSiteImages(DEFAULT_ENTRIES);
-    return DEFAULT_ENTRIES;
-  }
-  const text = await new Response(result.stream).text();
-  const stored = JSON.parse(text) as Partial<Record<SiteImageKey, SiteImageEntry>>;
+  const stored = await ladeOderLegeAn<Partial<Record<SiteImageKey, SiteImageEntry>>>(META_PATHNAME, DEFAULT_ENTRIES);
   return { ...DEFAULT_ENTRIES, ...stored };
 }
 
@@ -55,7 +45,7 @@ async function saveSiteImages(entries: Record<SiteImageKey, SiteImageEntry>): Pr
 }
 
 export async function getSiteImage(key: SiteImageKey): Promise<SiteImageEntry> {
-  const entries = await loadSiteImages();
+  const entries = await zurAnzeige(loadSiteImages, DEFAULT_ENTRIES);
   return entries[key] ?? DEFAULT_ENTRIES[key];
 }
 

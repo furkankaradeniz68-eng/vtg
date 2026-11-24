@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSiteContent, siteContentLabel, SITE_CONTENT_PAGES, type SiteContentSlug } from "@/lib/site-content";
+import { getSiteContentZumBearbeiten, siteContentLabel, SITE_CONTENT_PAGES, type SiteContentSlug } from "@/lib/site-content";
 import DirectUploadForm from "@/components/DirectUploadForm";
 
 export const metadata: Metadata = { title: "Seiteninhalt bearbeiten | VTG Rheinland-Pfalz" };
@@ -22,7 +22,7 @@ export default async function SeiteninhaltBearbeitenPage({
   if (!SLUGS.includes(slug as SiteContentSlug)) notFound();
 
   const pageMeta = SITE_CONTENT_PAGES.find((p) => p.slug === slug)!;
-  const content = await getSiteContent(slug as SiteContentSlug);
+  const content = await getSiteContentZumBearbeiten(slug as SiteContentSlug);
 
   return (
     <section className="mx-auto max-w-2xl px-4 py-10 sm:px-6">

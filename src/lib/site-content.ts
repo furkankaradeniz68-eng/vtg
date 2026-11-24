@@ -8,8 +8,9 @@
 // die Texte ohne Code-Deploy pflegen koennen (Entscheidung vom 2026-09-23).
 // Die Satzung selbst ist kein Freitext mehr: /satzung zeigt seit 2026-10-08
 // direkt das PDF (public/downloads/VTG_Satzung.pdf) als Vorschau.
-import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "site-content-meta.json";
 
@@ -199,18 +200,7 @@ Sie wird dreimal pro Jahr, in der Regel zum 1. April, 1. August und 1. Dezember,
 };
 
 async function loadSiteContent(): Promise<Record<SiteContentSlug, SiteContentEntry>> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await saveSiteContent(DEFAULT_ENTRIES);
-    return DEFAULT_ENTRIES;
-  }
-  const text = await new Response(result.stream).text();
-  const stored = JSON.parse(text) as Partial<Record<SiteContentSlug, SiteContentEntry>>;
+  const stored = await ladeOderLegeAn<Partial<Record<SiteContentSlug, SiteContentEntry>>>(META_PATHNAME, DEFAULT_ENTRIES);
   // Fehlende Seiten (z.B. neu hinzugefuegt) mit Default auffuellen, damit
   // getSiteContent() fuer alle SITE_CONTENT_PAGES immer einen Eintrag liefert.
   return { ...DEFAULT_ENTRIES, ...stored };
@@ -227,7 +217,7 @@ async function saveSiteContent(entries: Record<SiteContentSlug, SiteContentEntry
 }
 
 export async function getAllSiteContent(): Promise<Record<SiteContentSlug, SiteContentEntry>> {
-  return loadSiteContent();
+  return zurAnzeige(loadSiteContent, DEFAULT_ENTRIES);
 }
 
 // Auf der Live-Seite stand im gespeicherten "Überblick"-Text "Roßlauferstraße"
@@ -242,10 +232,19 @@ function korrigiereTippfehler(text: string): string {
   return TIPPFEHLER.reduce((t, [muster, korrekt]) => t.replace(muster, korrekt), text);
 }
 
-export async function getSiteContent(slug: SiteContentSlug): Promise<SiteContentEntry> {
-  const entries = await loadSiteContent();
+function inhaltFuer(entries: Record<SiteContentSlug, SiteContentEntry>, slug: SiteContentSlug): SiteContentEntry {
   const entry = entries[slug] ?? DEFAULT_ENTRIES[slug];
   return { ...entry, body: korrigiereTippfehler(entry.body) };
+}
+
+export async function getSiteContent(slug: SiteContentSlug): Promise<SiteContentEntry> {
+  return inhaltFuer(await zurAnzeige(loadSiteContent, DEFAULT_ENTRIES), slug);
+}
+
+// Fuer den Admin-Editor: ohne Ersatzwerte, damit bei einem Lesefehler nicht der
+// alte Starttext im Formular steht und beim Speichern den echten Text ersetzt.
+export async function getSiteContentZumBearbeiten(slug: SiteContentSlug): Promise<SiteContentEntry> {
+  return inhaltFuer(await loadSiteContent(), slug);
 }
 
 export type SiteContentChanges = {

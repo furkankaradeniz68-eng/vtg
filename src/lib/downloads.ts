@@ -2,8 +2,9 @@
 // verfahren-personendaten.ts liegen diese Daten ausschliesslich in privatem
 // Vercel-Blob-Speicher, nicht im Repo. Die eigentlichen Dateien liegen als
 // separate Blobs unter downloads/{id}-{dateiname}.
-import { put, del, get, head } from "@vercel/blob";
+import { put, del, head } from "@vercel/blob";
 import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { ladeBlobJson, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "downloads-meta.json";
 
@@ -29,15 +30,7 @@ export type DownloadEntry = {
 // keine Modul-weite Zwischenspeicherung: sonst sehen parallele
 // Serverless-Aufrufe veraltete Stände.
 async function loadDownloads(): Promise<DownloadEntry[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) return [];
-  const text = await new Response(result.stream).text();
-  const entries = JSON.parse(text) as DownloadEntry[];
+  const entries = (await ladeBlobJson<DownloadEntry[]>(META_PATHNAME)) ?? [];
   // Abwaertskompatibel: Eintraege, die vor Einfuehrung der Bestaetigungs-
   // Zaehlung angelegt wurden, haben noch kein downloadCount-Feld.
   return entries.map((e) => ({ ...e, downloadCount: e.downloadCount ?? 0 }));
@@ -58,12 +51,12 @@ export function isDownloadActive(entry: DownloadEntry): boolean {
 }
 
 export async function getDownloadsForUser(username: string): Promise<DownloadEntry[]> {
-  const entries = await loadDownloads();
+  const entries = await zurAnzeige(loadDownloads, []);
   return entries.filter((e) => e.username === username && isDownloadActive(e));
 }
 
 export async function getAllDownloads(): Promise<DownloadEntry[]> {
-  return loadDownloads();
+  return zurAnzeige(loadDownloads, []);
 }
 
 // Dateigroessen fuer die Admin-Tabelle: gespeicherter Wert, sonst aus dem
@@ -106,9 +99,10 @@ export async function addDownload(entry: DownloadEntry): Promise<void> {
 
 // Wird beim tatsaechlichen Abruf durch den zugewiesenen Mandanten aufgerufen
 // (nicht bei Admin-Zugriff) — das ist die "Bestaetigung", dass der Download
-// angekommen ist, plus laufende Zaehlung fuer die DLR-/Admin-Ansicht.
+// angekommen ist, plus laufende Zaehlung fuer die DLR-/Admin-Ansicht. Ein
+// Lesefehler darf den Abruf selbst nicht verhindern, dann wird nicht gezaehlt.
 export async function recordDownload(id: string): Promise<void> {
-  const entries = await loadDownloads();
+  const entries = await zurAnzeige<DownloadEntry[]>(loadDownloads, []);
   const entry = entries.find((e) => e.id === id);
   if (!entry) return;
   entry.downloadCount += 1;

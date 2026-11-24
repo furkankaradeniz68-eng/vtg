@@ -9,8 +9,9 @@
 // hochgeladene oder ersetzte Fotos werden als oeffentlich lesbare Blobs unter
 // personen/{id}-{dateiname} gespeichert (image = volle Blob-URL, blobPathname
 // gesetzt, damit beim Ersetzen/Loeschen der alte Blob aufgeraeumt wird).
-import { put, del, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put, del } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 
 const META_PATHNAME = "personen-meta.json";
 
@@ -854,18 +855,7 @@ const DEFAULT_ENTRIES: PersonEntry[] = [
 // Keine Modul-weite Zwischenspeicherung, siehe downloads.ts/public-downloads.ts:
 // diese Metadaten werden von der Anwendung selbst laufend veraendert.
 async function loadPersonen(): Promise<PersonEntry[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await savePersonen(DEFAULT_ENTRIES);
-    return DEFAULT_ENTRIES;
-  }
-  const text = await new Response(result.stream).text();
-  return JSON.parse(text) as PersonEntry[];
+  return ladeOderLegeAn<PersonEntry[]>(META_PATHNAME, DEFAULT_ENTRIES);
 }
 
 async function savePersonen(entries: PersonEntry[]): Promise<void> {
@@ -879,11 +869,11 @@ async function savePersonen(entries: PersonEntry[]): Promise<void> {
 }
 
 export async function getAllPersonen(): Promise<PersonEntry[]> {
-  return loadPersonen();
+  return zurAnzeige(loadPersonen, DEFAULT_ENTRIES);
 }
 
 export async function getPersonenByPage(page: PersonPageSlug): Promise<PersonEntry[]> {
-  const entries = await loadPersonen();
+  const entries = await zurAnzeige(loadPersonen, DEFAULT_ENTRIES);
   return entries.filter((e) => e.page === page).sort((a, b) => a.order - b.order);
 }
 

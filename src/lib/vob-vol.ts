@@ -10,8 +10,9 @@
 // Freitext (z.B. "Stundenlohn" statt eines Betrags, "laeuft noch", leere
 // Werte bei unbeauftragten/laufenden Verfahren) und muessen so bearbeitbar
 // bleiben, wie sie im Original-PDF auch sind.
-import { put, get } from "@vercel/blob";
-import { BLOB_TOKEN, blobAbortSignal } from "@/lib/blob-token";
+import { put } from "@vercel/blob";
+import { BLOB_TOKEN } from "@/lib/blob-token";
+import { ladeBlobJson, ladeOderLegeAn, zurAnzeige } from "@/lib/blob-json";
 import seedRowsRaw from "@/lib/vob-vol-seed.json";
 import nachtragRowsRaw from "@/lib/vob-vol-nachtrag-2026.json";
 
@@ -60,13 +61,7 @@ const NACHTRAG_MARKER_PATHNAME = "vob-vol-nachtrag-2026-10-12.json";
 const REIHENFOLGE_MARKER_PATHNAME = "vob-vol-reihenfolge-ilbesheim-2026-10-12.json";
 
 async function markerVorhanden(pathname: string): Promise<boolean> {
-  const marker = await get(pathname, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  return !!marker && marker.statusCode === 200;
+  return (await ladeBlobJson(pathname)) !== undefined;
 }
 
 async function setzeMarker(pathname: string): Promise<void> {
@@ -109,18 +104,7 @@ async function wendeReihenfolgeKorrekturAn(rows: VobVolRow[]): Promise<VobVolRow
 // von der Anwendung selbst (Bauleiter-Dashboard) laufend veraendert und
 // muessen bei jedem PDF-Download aktuell sein.
 async function loadVobVolRows(): Promise<VobVolRow[]> {
-  const result = await get(META_PATHNAME, {
-    access: "private",
-    useCache: false,
-    token: BLOB_TOKEN,
-    abortSignal: blobAbortSignal(),
-  }).catch(() => null);
-  if (!result || result.statusCode !== 200) {
-    await saveVobVolRows(DEFAULT_ROWS);
-    return wendeNachtragAn(DEFAULT_ROWS);
-  }
-  const text = await new Response(result.stream).text();
-  return wendeNachtragAn(JSON.parse(text) as VobVolRow[]);
+  return wendeNachtragAn(await ladeOderLegeAn<VobVolRow[]>(META_PATHNAME, DEFAULT_ROWS));
 }
 
 async function saveVobVolRows(rows: VobVolRow[]): Promise<void> {
@@ -135,7 +119,7 @@ async function saveVobVolRows(rows: VobVolRow[]): Promise<void> {
 
 // Aufsteigend nach ProdNr sortiert (Anzeigereihenfolge im Original-PDF).
 export async function getAllVobVolRows(): Promise<VobVolRow[]> {
-  const rows = await loadVobVolRows();
+  const rows = await zurAnzeige(loadVobVolRows, DEFAULT_ROWS);
   return [...rows].sort((a, b) => a.prodNr.localeCompare(b.prodNr, "de", { numeric: true }));
 }
 
@@ -144,7 +128,7 @@ export async function getAllVobVolRows(): Promise<VobVolRow[]> {
 // Eingabereihenfolge des Originals erhalten (stabile Sortierung). Die Original-
 // PDF ist nicht nach ProdNr sortiert, sondern nach Erfassung.
 export async function getVobVolRowsFuerPdf(): Promise<VobVolRow[]> {
-  const rows = await loadVobVolRows();
+  const rows = await zurAnzeige(loadVobVolRows, DEFAULT_ROWS);
   const jahrKey = (r: VobVolRow) => (r.jahr.match(/^\d{4}/)?.[0] ?? "9999");
   return rows
     .map((row, index) => ({ row, index }))
