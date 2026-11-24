@@ -5,15 +5,60 @@ import { getPersonenByPage, groupPersonenBySection, type PersonEntry } from "@/l
 
 export const metadata: Metadata = { title: "Geschäftsstelle | VTG Rheinland-Pfalz" };
 
+// Dieser Bereich ist nicht einfach der Reihe nach gelistet (Kundenwunsch
+// 2026-11-24): Geschaeftsbereichsleitung allein oben, darunter die IT, danach
+// unter eigener kleiner Ueberschrift die Buchfuehrung. Die Zuordnung ergibt sich
+// aus der im Admin gepflegten Funktion, die Reihenfolge aus dem Nachnamen.
+const IT_BUCHFUEHRUNG_SECTION = "IT, Buchführung, Zahlungsmanagement";
+
+function nachNachname(a: PersonEntry, b: PersonEntry) {
+  const nachname = (p: PersonEntry) => p.name.trim().split(/\s+/).at(-1) ?? "";
+  return nachname(a).localeCompare(nachname(b), "de") || a.name.localeCompare(b.name, "de");
+}
+
+function teileItBuchfuehrung(people: PersonEntry[]) {
+  const leitung: PersonEntry[] = [];
+  const it: PersonEntry[] = [];
+  const buchfuehrung: PersonEntry[] = [];
+  for (const p of people) {
+    const funktion = p.role.normalize("NFC").toLowerCase();
+    if (funktion.includes("geschäftsbereichsleitung")) leitung.push(p);
+    else if (funktion.includes("buchführung")) buchfuehrung.push(p);
+    else it.push(p);
+  }
+  return { leitung, it: it.sort(nachNachname), buchfuehrung: buchfuehrung.sort(nachNachname) };
+}
+
+function Karten({ people, className }: { people: PersonEntry[]; className: string }) {
+  if (people.length === 0) return null;
+  return (
+    <div className={`grid grid-cols-1 gap-6 sm:grid-cols-2 ${className}`}>
+      {people.map((p) => (
+        <PersonCard key={p.id} person={p} />
+      ))}
+    </div>
+  );
+}
+
 function Gruppe({ title, people }: { title?: string; people: PersonEntry[] }) {
+  const geteilt = title?.normalize("NFC") === IT_BUCHFUEHRUNG_SECTION ? teileItBuchfuehrung(people) : undefined;
   return (
     <div className="mt-10">
       <h2 className="font-heading text-xl font-bold text-neutral-900">{title}</h2>
-      <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        {people.map((p) => (
-          <PersonCard key={p.id} person={p} />
-        ))}
-      </div>
+      {geteilt ? (
+        <>
+          <Karten people={geteilt.leitung} className="mt-4" />
+          <Karten people={geteilt.it} className="mt-6" />
+          {geteilt.buchfuehrung.length > 0 && (
+            <>
+              <h3 className="mt-8 font-heading text-lg font-bold text-neutral-900">Buchführung</h3>
+              <Karten people={geteilt.buchfuehrung} className="mt-4" />
+            </>
+          )}
+        </>
+      ) : (
+        <Karten people={people} className="mt-4" />
+      )}
     </div>
   );
 }
