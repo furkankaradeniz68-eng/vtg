@@ -8,12 +8,28 @@ export const metadata: Metadata = { title: "Geschäftsstelle | VTG Rheinland-Pfa
 // Dieser Bereich ist nicht einfach der Reihe nach gelistet (Kundenwunsch
 // 2026-11-24): Geschaeftsbereichsleitung allein oben, darunter die IT, danach
 // unter eigener kleiner Ueberschrift die Buchfuehrung. Die Zuordnung ergibt sich
-// aus der im Admin gepflegten Funktion, die Reihenfolge aus dem Nachnamen.
+// aus der im Admin gepflegten Funktion.
 const IT_BUCHFUEHRUNG_SECTION = "IT, Buchführung, Zahlungsmanagement";
 
-function nachNachname(a: PersonEntry, b: PersonEntry) {
-  const nachname = (p: PersonEntry) => p.name.trim().split(/\s+/).at(-1) ?? "";
-  return nachname(a).localeCompare(nachname(b), "de") || a.name.localeCompare(b.name, "de");
+// Reihenfolge vom Kunden vorgegeben (2026-11-25), jeweils zeilenweise von links
+// nach rechts. Wer hier nicht steht (z.B. neu angelegt), kommt ans Ende.
+const IT_BUCHFUEHRUNG_REIHENFOLGE = [
+  "maximilian.zerr@vtg-rlp.de",
+  "alexander.jung@vtg-rlp.de",
+  "olga.kullmann@vtg-rlp.de",
+  "ira.kohleber@vtg-rlp.de",
+  "kristina.neu@vtg-rlp.de",
+  "guelten.gueney@vtg-rlp.de",
+  "elena.boettger@vtg-rlp.de",
+  "daniela.hess@vtg-rlp.de",
+];
+
+function nachVorgabe(a: PersonEntry, b: PersonEntry) {
+  const position = (p: PersonEntry) => {
+    const index = IT_BUCHFUEHRUNG_REIHENFOLGE.indexOf(p.email?.trim().toLowerCase() ?? "");
+    return index === -1 ? IT_BUCHFUEHRUNG_REIHENFOLGE.length : index;
+  };
+  return position(a) - position(b);
 }
 
 function teileItBuchfuehrung(people: PersonEntry[]) {
@@ -26,7 +42,7 @@ function teileItBuchfuehrung(people: PersonEntry[]) {
     else if (funktion.includes("buchführung")) buchfuehrung.push(p);
     else it.push(p);
   }
-  return { leitung, it: it.sort(nachNachname), buchfuehrung: buchfuehrung.sort(nachNachname) };
+  return { leitung, it: it.sort(nachVorgabe), buchfuehrung: buchfuehrung.sort(nachVorgabe) };
 }
 
 function Karten({ people, className }: { people: PersonEntry[]; className: string }) {
